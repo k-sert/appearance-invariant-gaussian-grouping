@@ -9,36 +9,57 @@ module load CUDA/12.8.0
 
 echo "[2/7] Initializing conda..."
 
-source $(conda info --base)/etc/profile.d/conda.sh
+source "$(conda info --base)/etc/profile.d/conda.sh"
 
-ENV_PATH="$HOME/envs/gg-env"
+ENV_PATH="$HOME/envs/gsw-env"
 
 echo "[3/7] Creating conda environment..."
 
-conda create -p "$ENV_PATH" python=3.8 -y
+conda create -y -p "$ENV_PATH" python=3.10 pip ninja cmake
 conda activate "$ENV_PATH"
 
 echo "[4/7] Installing PyTorch..."
 
-pip install torch==2.4.1+cu124 torchvision torchaudio \
+pip install --upgrade pip setuptools wheel
+
+pip install \
+  torch==2.4.1 \
+  torchvision==0.19.1 \
+  torchaudio==2.4.1 \
   --index-url https://download.pytorch.org/whl/cu124
 
 echo "[5/7] Installing Python dependencies..."
 
-pip install plyfile==0.8.1 tqdm scipy wandb opencv-python \
-  scikit-learn lpips ninja codecarbon
+pip install \
+  plyfile \
+  tqdm \
+  scipy \
+  pandas \
+  pillow \
+  opencv-python \
+  imageio \
+  imageio-ffmpeg \
+  matplotlib \
+  scikit-image \
+  scikit-learn \
+  lpips \
+  tensorboard \
+  einops \
+  kornia \
+  codecarbon
 
 echo "[6/7] Configuring CUDA environment..."
 
-export CUDA_HOME=$EBROOTCUDA
-export PATH=$CUDA_HOME/bin:$PATH
-export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+export CUDA_HOME="${EBROOTCUDA}"
+export PATH="$CUDA_HOME/bin:$PATH"
+export LD_LIBRARY_PATH="$CUDA_HOME/lib64:${LD_LIBRARY_PATH:-}"
 export TORCH_CUDA_ARCH_LIST="8.0"
 
-cd "$HOME/Appearance-Invariant-Gaussian-Grouping/Stage-1/Gaussian-Grouping"
+REPO_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/.. && pwd )"
+cd "$REPO_ROOT/Stage-1/Gaussian-in-the-Wild"
 
 grep -q "#include <cfloat>" ./submodules/simple-knn/simple_knn.cu || \
-sed -i '1i #include <cfloat>' ./submodules/simple-knn/simple_knn.cu
+  sed -i '1i #include <cfloat>' ./submodules/simple-knn/simple_knn.cu
 
 echo "[7/7] Building CUDA extensions..."
 
@@ -55,5 +76,5 @@ print("CUDA:", torch.version.cuda)
 print("CUDA available:", torch.cuda.is_available())
 
 print("✅ CUDA extensions imported successfully")
-print("✅ GG environment setup complete")
+print("✅ GS-W environment setup complete")
 EOF
