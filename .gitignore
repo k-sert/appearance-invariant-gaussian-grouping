@@ -1,12 +1,36 @@
+# Python
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+
+# OS / editor
 .DS_Store
+.vscode/
+
+# Logs
 *.log
+
+# Outputs / checkpoints
 outputs/
 checkpoints/
 wandb/
+
+# Model files
 *.pt
 *.pth
 *.ckpt
-.vscode/
+
+# CUDA / extension build artifacts
+build/
+dist/
+
+*.so
+*.o
+*.a
+
+*.ninja*
+*.egg-info/
+
+# Optional: env folders
+.env
+venv/
