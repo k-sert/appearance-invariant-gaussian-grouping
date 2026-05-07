@@ -14,6 +14,8 @@ __pycache__/
 outputs/
 checkpoints/
 wandb/
+jobs/
+logs/
 
 # Model files
 *.pt
