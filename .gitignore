@@ -1,4 +1,3 @@
-# Python
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
@@ -11,16 +10,23 @@ __pycache__/
 *.log
 
 # Outputs / checkpoints
-outputs/
+output/
+**/output/
 checkpoints/
 wandb/
 jobs/
+**/jobs/
 logs/
+**/logs/
 
 # Model files
 *.pt
 *.pth
 *.ckpt
+
+# large geometry/data
+*.ply
+*.npy
 
 # CUDA / extension build artifacts
 build/
@@ -35,4 +41,3 @@ dist/
 
 # Optional: env folders
 .env
-venv/
