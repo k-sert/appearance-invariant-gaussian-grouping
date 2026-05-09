@@ -91,7 +91,10 @@ class ModelParams(ParamGroup):
         self.use_xw_init_box_coord=True 
         self.use_color_net=True
 
-        self.use_scaling_loss=False    
+        self.dynamic_branch_weight = 1.0
+        self.static_branch_weight = 1.0
+
+        self.use_scaling_loss=False
         self.use_lpips_loss=True
         
         self.use_box_coord_loss=True
@@ -124,7 +127,8 @@ class OptimizationParams(ParamGroup):
         self.map_generator_lr=1e-3*2
         
         self.color_net_lr=5e-4
-        
+        self.dynamic_mask_mlp_lr=5e-4
+
         self.box_coord_lr=1
         self.warm_up_iter=0
         

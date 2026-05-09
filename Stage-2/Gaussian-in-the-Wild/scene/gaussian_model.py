@@ -26,6 +26,7 @@ from net_modules.feature_maps_sample import*
 from net_modules.color_features_net import *
 
 from net_modules.feature_maps_projection import *
+from net_modules.basic_mlp import DynamicMaskMLP
 import logging
 class GaussianModel:
 
@@ -119,7 +120,11 @@ class GaussianModel:
                     identity_dim=self.identity_dim if self.use_identity else 0
                 ).to(self.device)
             else: raise NotImplementedError
-                
+
+        self.dynamic_mask_mlp = DynamicMaskMLP(embed_dim=self.identity_dim).to(self.device)
+        self.dynamic_branch_weight = getattr(args, "dynamic_branch_weight", 1.0)
+        self.static_branch_weight = getattr(args, "static_branch_weight", 1.0)
+
         self.use_features_mask=args.use_features_mask
 
     
@@ -321,6 +326,10 @@ class GaussianModel:
                 {'params': self.color_net.parameters(), 'lr': training_args.color_net_lr, "name": "color_net"},
             ])
 
+        if self.use_identity:
+            l.extend([
+                {'params': self.dynamic_mask_mlp.parameters(), 'lr': training_args.dynamic_mask_mlp_lr, "name": "dynamic_mask_mlp"},
+            ])
 
         self.optimizer = torch.optim.Adam(l, lr=0.0, eps=1e-15)
         self.xyz_scheduler_args = get_expon_lr_func(lr_init=training_args.position_lr_init*self.spatial_lr_scale,
@@ -432,6 +441,9 @@ class GaussianModel:
         if self.use_color_net:
             torch.save(self.color_net.state_dict(),os.path.join(root_path, "color_net.pth"))
 
+        if self.use_identity:
+            torch.save(self.dynamic_mask_mlp.state_dict(), os.path.join(root_path, "dynamic_mask_mlp.pth"))
+
         torch.save(other_atrributes_dict,os.path.join(root_path, "other_atrributes_dict.pth"))
         
 
@@ -512,8 +524,12 @@ class GaussianModel:
             self.color_net.load_state_dict(torch.load(os.path.join(root_path,"color_net.pth"),map_location="cpu"))
             self.color_net=self.color_net.to(self.device)
 
-        
-        
+        if self.use_identity:
+            dynamic_mask_mlp_path = os.path.join(root_path, "dynamic_mask_mlp.pth")
+            if os.path.exists(dynamic_mask_mlp_path):
+                self.dynamic_mask_mlp.load_state_dict(torch.load(dynamic_mask_mlp_path, map_location="cpu"))
+            self.dynamic_mask_mlp = self.dynamic_mask_mlp.to(self.device)
+
     def forward(self,viewpoint_camera,store_cache=False):
         img=viewpoint_camera.original_image.cuda()
         camera_center=viewpoint_camera.camera_center
@@ -557,27 +573,35 @@ class GaussianModel:
                 
             _point_features=torch.cat([_point_features0,_point_features1],dim=1)
         
-        # Append persistent identity features to the sampled point features
+        # Append persistent identity features to the sampled point features and gate branches
+        _features_intrinsic_gated = _features_intrinsic
         if self.use_identity:
             identity = self._identity
             _point_features = torch.cat([_point_features, identity], dim=1)
-        
+
+            # p: (N, 1) probability that each Gaussian belongs to a dynamic object
+            p = self.dynamic_mask_mlp(identity)
+            self._dynamic_prob = p
+            _features_intrinsic_gated = _features_intrinsic * (self.static_branch_weight * (1.0 - p)).unsqueeze(-1)
+            if _point_features.numel() > 0:
+                _point_features = _point_features * (self.dynamic_branch_weight * p)
+
         if self.use_color_net:
             if self.use_colors_precomp:
                 if self.color_net_type in ["naive"]:
-                    self._pre_comp_color=self.color_net(_xyz,_features_intrinsic,_point_features,view_direction,\
+                    self._pre_comp_color=self.color_net(_xyz,_features_intrinsic_gated,_point_features,view_direction,\
                         inter_weight=self.colornet_inter_weight,store_cache=store_cache)
                 else: raise NotImplementedError
             else:
                 if self.color_net_type in ["naive"]:
-                    features_dealed=self.color_net(_xyz,_features_intrinsic,_point_features,view_direction,\
+                    features_dealed=self.color_net(_xyz,_features_intrinsic_gated,_point_features,view_direction,\
                         inter_weight=self.colornet_inter_weight,store_cache=store_cache)
                 else: raise NotImplementedError
-                
+
                 self._features_dealed=features_dealed
         else:
-            
-            self._features_dealed=_features_intrinsic
+
+            self._features_dealed=_features_intrinsic_gated
             
         self._opacity_dealed=_opacity
         self._point_features=_point_features

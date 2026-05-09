@@ -3,6 +3,26 @@ import torch.nn as nn
 from net_modules.embedder import *
 import numpy as np
 
+
+class DynamicMaskMLP(nn.Module):
+    """Maps per-Gaussian identity embeddings to a dynamic probability in [0, 1]."""
+    def __init__(self, embed_dim: int = 16, hidden_dim: int = 32):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(embed_dim, hidden_dim),
+            nn.ReLU(inplace=True),
+            nn.Linear(hidden_dim, 1),
+            nn.Sigmoid(),
+        )
+        for m in self.net:
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                nn.init.constant_(m.bias, 0.0)
+
+    def forward(self, identity: torch.Tensor) -> torch.Tensor:
+        # identity: (N, embed_dim) -> (N, 1)
+        return self.net(identity)
+
 class lin_module(nn.Module):
     def __init__(self,
                 d_in,
