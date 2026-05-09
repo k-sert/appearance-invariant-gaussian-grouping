@@ -327,7 +327,7 @@ def add_probe_score(df):
 
 scene = "figurines_phase_1"
 
-gg_root = f"{BASE_OUTPUT}/{scene}/point_cloud"
+gg_root = f"{BASE_OUTPUT}/../Gaussian-Grouping/output/{scene}/point_cloud"
 gsw_ply_path = f"{BASE_OUTPUT}/figurines_baseline_phase_1/ckpts_point_cloud/iteration_70000/point_cloud.ply"
 
 gg_iters = [
@@ -362,7 +362,7 @@ scored_df
 
 scene = "figurines_phase_2"
 
-gg_root = f"{BASE_OUTPUT}/{scene}/point_cloud"
+gg_root = f"{BASE_OUTPUT}/../Gaussian-Grouping/output/{scene}/point_cloud"
 gsw_ply_path = f"{BASE_OUTPUT}/figurines_baseline_phase_2/ckpts_point_cloud/iteration_70000/point_cloud.ply"
 
 gg_iters = [
@@ -397,7 +397,7 @@ scored_df
 
 scene = "ramen_phase_1"
 
-gg_root = f"{BASE_OUTPUT}/{scene}/point_cloud"
+gg_root = f"{BASE_OUTPUT}/../Gaussian-Grouping/output/{scene}/point_cloud"
 gsw_ply_path = f"{BASE_OUTPUT}/ramen_baseline_phase_1/ckpts_point_cloud/iteration_70000/point_cloud.ply"
 
 gg_iters = [
@@ -432,7 +432,7 @@ scored_df
 
 scene = "ramen_phase_2"
 
-gg_root = f"{BASE_OUTPUT}/{scene}/point_cloud"
+gg_root = f"{BASE_OUTPUT}/../Gaussian-Grouping/output/{scene}/point_cloud"
 gsw_ply_path = f"{BASE_OUTPUT}/ramen_baseline_phase_2/ckpts_point_cloud/iteration_70000/point_cloud.ply"
 
 gg_iters = [
@@ -467,7 +467,7 @@ scored_df
 
 scene = "teatime_phase_1"
 
-gg_root = f"{BASE_OUTPUT}/{scene}/point_cloud"
+gg_root = f"{BASE_OUTPUT}/../Gaussian-Grouping/output/{scene}/point_cloud"
 gsw_ply_path = f"{BASE_OUTPUT}/teatime_baseline_phase_1/ckpts_point_cloud/iteration_70000/point_cloud.ply"
 
 gg_iters = [
@@ -502,7 +502,7 @@ scored_df
 
 scene = "teatime_phase_2"
 
-gg_root = f"{BASE_OUTPUT}/{scene}/point_cloud"
+gg_root = f"{BASE_OUTPUT}/../Gaussian-Grouping/output/{scene}/point_cloud"
 gsw_ply_path = f"{BASE_OUTPUT}/teatime_baseline_phase_2/ckpts_point_cloud/iteration_70000/point_cloud.ply"
 
 gg_iters = [
