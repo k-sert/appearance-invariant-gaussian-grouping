@@ -21,8 +21,11 @@ print("✅ GS-W setup complete")
 The GS-W model is trained on all datasets to provide a performance baseline. Also, the energy consumption during training is tracked to estimate computational cost and emissions.
 """
 
-DATASET_DIR = "/scratch-shared/gpuuva074/datasets"
+# DATASET_DIR = "/scratch-shared/gpuuva074/datasets"
+TMPDIR = os.getenv("TMPDIR") or "/scratch-shared/gpuuva074/"
+DATASET_DIR = f"{TMPDIR}/datasets"
 BASE_OUTPUT = f"{os.path.dirname(os.path.abspath(__file__))}/output"
+GG_BASE_OUTPUT = f"{BASE_OUTPUT}/../../Gaussian-Grouping/output"
 
 
 def train_GSW_base_model(scene, output_name, iterations=70000, resolution=2):
@@ -62,12 +65,12 @@ def train_GSW_base_model(scene, output_name, iterations=70000, resolution=2):
         print(f"Estimated CO2 emissions: {emissions:.6f} kg")
 
 
-train_GSW_base_model("figurines", "figurines_baseline_phase_1")
-
-train_GSW_base_model("ramen", "ramen_baseline_phase_1")
-
-train_GSW_base_model("teatime", "teatime_baseline_phase_1")
-
+# train_GSW_base_model("figurines", "figurines_baseline_phase_1")
+#
+# train_GSW_base_model("ramen", "ramen_baseline_phase_1")
+#
+# train_GSW_base_model("teatime", "teatime_baseline_phase_1")
+#
 # train_GSW_base_model("figurines_varied", "figurines_baseline_phase_2")
 #
 # train_GSW_base_model("ramen_varied", "ramen_baseline_phase_2")
@@ -327,8 +330,8 @@ def add_probe_score(df):
 
 scene = "figurines_phase_1"
 
-gg_root = f"{BASE_OUTPUT}/../Gaussian-Grouping/output/{scene}/point_cloud"
-gsw_ply_path = f"{BASE_OUTPUT}/figurines_baseline_phase_1/ckpts_point_cloud/iteration_70000/point_cloud.ply"
+gg_root = f"{GG_BASE_OUTPUT}/{scene}/point_cloud"
+gsw_ply_path = f"{GG_BASE_OUTPUT}/figurines_baseline_phase_1/ckpts_point_cloud/iteration_70000/point_cloud.ply"
 
 gg_iters = [
     3000,
@@ -362,8 +365,8 @@ scored_df
 
 scene = "figurines_phase_2"
 
-gg_root = f"{BASE_OUTPUT}/../Gaussian-Grouping/output/{scene}/point_cloud"
-gsw_ply_path = f"{BASE_OUTPUT}/figurines_baseline_phase_2/ckpts_point_cloud/iteration_70000/point_cloud.ply"
+gg_root = f"{GG_BASE_OUTPUT}/{scene}/point_cloud"
+gsw_ply_path = f"{GG_BASE_OUTPUT}/figurines_baseline_phase_2/ckpts_point_cloud/iteration_70000/point_cloud.ply"
 
 gg_iters = [
     3000,
@@ -397,8 +400,8 @@ scored_df
 
 scene = "ramen_phase_1"
 
-gg_root = f"{BASE_OUTPUT}/../Gaussian-Grouping/output/{scene}/point_cloud"
-gsw_ply_path = f"{BASE_OUTPUT}/ramen_baseline_phase_1/ckpts_point_cloud/iteration_70000/point_cloud.ply"
+gg_root = f"{GG_BASE_OUTPUT}/{scene}/point_cloud"
+gsw_ply_path = f"{GG_BASE_OUTPUT}/ramen_baseline_phase_1/ckpts_point_cloud/iteration_70000/point_cloud.ply"
 
 gg_iters = [
     3000,
@@ -432,8 +435,8 @@ scored_df
 
 scene = "ramen_phase_2"
 
-gg_root = f"{BASE_OUTPUT}/../Gaussian-Grouping/output/{scene}/point_cloud"
-gsw_ply_path = f"{BASE_OUTPUT}/ramen_baseline_phase_2/ckpts_point_cloud/iteration_70000/point_cloud.ply"
+gg_root = f"{GG_BASE_OUTPUT}/{scene}/point_cloud"
+gsw_ply_path = f"{GG_BASE_OUTPUT}/ramen_baseline_phase_2/ckpts_point_cloud/iteration_70000/point_cloud.ply"
 
 gg_iters = [
     3000,
@@ -467,8 +470,8 @@ scored_df
 
 scene = "teatime_phase_1"
 
-gg_root = f"{BASE_OUTPUT}/../Gaussian-Grouping/output/{scene}/point_cloud"
-gsw_ply_path = f"{BASE_OUTPUT}/teatime_baseline_phase_1/ckpts_point_cloud/iteration_70000/point_cloud.ply"
+gg_root = f"{GG_BASE_OUTPUT}/{scene}/point_cloud"
+gsw_ply_path = f"{GG_BASE_OUTPUT}/teatime_baseline_phase_1/ckpts_point_cloud/iteration_70000/point_cloud.ply"
 
 gg_iters = [
     3000,
@@ -502,8 +505,8 @@ scored_df
 
 scene = "teatime_phase_2"
 
-gg_root = f"{BASE_OUTPUT}/../Gaussian-Grouping/output/{scene}/point_cloud"
-gsw_ply_path = f"{BASE_OUTPUT}/teatime_baseline_phase_2/ckpts_point_cloud/iteration_70000/point_cloud.ply"
+gg_root = f"{GG_BASE_OUTPUT}/{scene}/point_cloud"
+gsw_ply_path = f"{GG_BASE_OUTPUT}/teatime_baseline_phase_2/ckpts_point_cloud/iteration_70000/point_cloud.ply"
 
 gg_iters = [
     3000,
@@ -610,13 +613,13 @@ train_GSW_identity_model(
     identity_trainable=True,
 )
 
-# train_GSW_identity_model(
-#     scene="figurines_varied",
-#     output_name="figurines_finetuned_identity_phase_2",
-#     gg_experiment="figurines_phase_2",
-#     gg_iteration=7000,
-#     identity_trainable=True,
-# )
+train_GSW_identity_model(
+    scene="figurines_varied",
+    output_name="figurines_finetuned_identity_phase_2",
+    gg_experiment="figurines_phase_2",
+    gg_iteration=7000,
+    identity_trainable=True,
+)
 
 train_GSW_identity_model(
     scene="ramen",
@@ -626,13 +629,13 @@ train_GSW_identity_model(
     identity_trainable=True,
 )
 
-# train_GSW_identity_model(
-#     scene="ramen_varied",
-#     output_name="ramen_finetuned_identity_phase_2",
-#     gg_experiment="ramen_phase_2",
-#     gg_iteration=7000,
-#     identity_trainable=True,
-# )
+train_GSW_identity_model(
+    scene="ramen_varied",
+    output_name="ramen_finetuned_identity_phase_2",
+    gg_experiment="ramen_phase_2",
+    gg_iteration=7000,
+    identity_trainable=True,
+)
 
 train_GSW_identity_model(
     scene="teatime",
@@ -642,13 +645,13 @@ train_GSW_identity_model(
     identity_trainable=True,
 )
 
-# train_GSW_identity_model(
-#     scene="teatime_varied",
-#     output_name="teatime_finetuned_identity_phase_2",
-#     gg_experiment="teatime_phase_2",
-#     gg_iteration=7000,
-#     identity_trainable=True,
-# )
+train_GSW_identity_model(
+    scene="teatime_varied",
+    output_name="teatime_finetuned_identity_phase_2",
+    gg_experiment="teatime_phase_2",
+    gg_iteration=7000,
+    identity_trainable=True,
+)
 
 """## Performance Results
 
