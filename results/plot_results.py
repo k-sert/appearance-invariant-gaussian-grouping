@@ -21,7 +21,7 @@ def _parse_exp_name(exp_name: str):
 
     parts = remainder.split("_", 1)
     dataset = parts[0]
-    model = parts[1] if len(parts) > 1 else "ours"
+    model = parts[1] if len(parts) > 1 else "baseline"
 
     return dataset, model, phase
 
@@ -58,6 +58,7 @@ def collect_results(stage: str):
 
         row = {
             "experiment": exp_name,
+            "stage": stage,
             "dataset": dataset,
             "model": model,
             "PSNR": metrics.get("PSNR"),
@@ -76,7 +77,25 @@ def collect_results(stage: str):
     return df_phase_1, df_phase_2
 
 
-def plot_phase_metric_bars(df, phase_name, out_dir: str):
+def collect_all_stages(stages: list[str]):
+    phase_1_dfs, phase_2_dfs = [], []
+
+    for stage in stages:
+        df1, df2 = collect_results(stage)
+        phase_1_dfs.append(df1)
+        phase_2_dfs.append(df2)
+
+    df_phase_1 = (
+        pd.concat(phase_1_dfs, ignore_index=True) if phase_1_dfs else pd.DataFrame()
+    )
+    df_phase_2 = (
+        pd.concat(phase_2_dfs, ignore_index=True) if phase_2_dfs else pd.DataFrame()
+    )
+
+    return df_phase_1, df_phase_2
+
+
+def plot_phase_metric_bars(df, phase_name, out_dir: str, group_col: str = "model"):
     if df.empty:
         print(f"No data for {phase_name}, skipping.")
         return
@@ -84,31 +103,32 @@ def plot_phase_metric_bars(df, phase_name, out_dir: str):
     os.makedirs(out_dir, exist_ok=True)
 
     datasets = sorted(df["dataset"].dropna().unique())
-    models = sorted(df["model"].dropna().unique())
+    groups = sorted(df[group_col].dropna().unique())
     metrics = ["PSNR", "SSIM", "LPIPS"]
 
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-    n = len(models)
+    n = len(groups)
     width = 0.7 / n
     offsets = np.linspace(-(n - 1) / 2 * width, (n - 1) / 2 * width, n)
 
     for metric in metrics:
         values = (
-            df.pivot(index="dataset", columns="model", values=metric)
+            df.pivot(index="dataset", columns=group_col, values=metric)
             .reindex(datasets)
-            .reindex(columns=models)
+            .reindex(columns=groups)
         )
 
         x = np.arange(len(datasets))
 
         plt.figure(figsize=(6.5, 4.5))
 
-        for i, model in enumerate(models):
+        for i, group in enumerate(groups):
+            label = group.replace("_", " ").title()
             plt.bar(
                 x + offsets[i],
-                values[model],
+                values[group],
                 width,
-                label=model.replace("_", " ").title(),
+                label=label,
                 color=colors[i % len(colors)],
                 edgecolor="black",
                 linewidth=0.5,
@@ -131,20 +151,41 @@ def plot_phase_metric_bars(df, phase_name, out_dir: str):
         plt.close()
 
 
-def main(stage: str):
-    if not os.path.exists(stage):
-        raise ValueError(f"Could not fine stage: {stage}")
+def main(stages: list[str]):
+    for stage in stages:
+        stage_dir = os.path.join(BASE_DIR, stage)
+        if not os.path.isdir(stage_dir):
+            raise ValueError(f"Could not find stage directory: {stage_dir}")
 
-    phase_1_results, phase_2_results = collect_results(stage=stage)
+    # Per-stage plots
+    for stage in stages:
+        df1, df2 = collect_results(stage)
+        plots_dir = os.path.join(BASE_DIR, "plots", stage)
+        plot_phase_metric_bars(df1, "Original", os.path.join(plots_dir, "phase_1"))
+        plot_phase_metric_bars(
+            df2, "Appearance-varied", os.path.join(plots_dir, "phase_2")
+        )
 
-    plots_dir = os.path.join(BASE_DIR, "plots", stage)
-    plot_phase_metric_bars(phase_1_results, "Original", os.path.join(plots_dir, "phase_1"))
-    plot_phase_metric_bars(phase_2_results, "Appearance-varied", os.path.join(plots_dir, "phase_2"))
+    # Cross-stage comparison plots
+    if len(stages) > 1:
+        df1, df2 = collect_all_stages(stages)
+        df1["stage_model"] = df1["stage"] + " / " + df1["model"]
+        df2["stage_model"] = df2["stage"] + " / " + df2["model"]
+        plots_dir = os.path.join(BASE_DIR, "plots", "comparison")
+        plot_phase_metric_bars(
+            df1, "Original", os.path.join(plots_dir, "phase_1"), group_col="stage_model"
+        )
+        plot_phase_metric_bars(
+            df2,
+            "Appearance-varied",
+            os.path.join(plots_dir, "phase_2"),
+            group_col="stage_model",
+        )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stage", required=True, type=str)
+    parser.add_argument("--stage", required=True, nargs="+", type=str)
     args = parser.parse_args()
 
-    main(stage=args.stage)
+    main(stages=args.stage)
