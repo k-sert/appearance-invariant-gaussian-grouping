@@ -1,0 +1,7 @@
+build/
+*.so
+*.o
+*.a
+*.ninja*
+dist/
+*.egg-info/
