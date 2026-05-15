@@ -172,7 +172,7 @@ def train(args: argparse.Namespace) -> None:
     gg_root = Path(args.gg_root).resolve()
     source = datasets_root / args.scene
     output = gsw_root / "output" / args.output_name
-    gg_point_cloud = gg_root / "output" / args.gg_experiment / "point_cloud" / f"iteration_{args.gg_iteration}"
+    gg_point_cloud = gg_root / args.gg_experiment / "point_cloud" / f"iteration_{args.gg_iteration}"
     identity_path = gg_point_cloud / "identity_encodings.npy"
     xyz_path = gg_point_cloud / "gaussian_xyz.npy"
     confidence_path = source / args.boundary_confidence_dir
