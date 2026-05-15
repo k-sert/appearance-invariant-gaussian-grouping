@@ -209,7 +209,6 @@ def train(args: argparse.Namespace) -> None:
         "--identity_xyz_path",
         str(xyz_path),
         "--use_boundary_loss",
-        "--boundary_identity_trainable",
         "--boundary_confidence_path",
         str(confidence_path),
         "--boundary_instance_path",
@@ -227,6 +226,11 @@ def train(args: argparse.Namespace) -> None:
         "--boundary_k_neighbors",
         str(args.boundary_k_neighbors),
     ]
+    if args.boundary_identity_trainable:
+        cmd.append("--boundary_identity_trainable")
+    if args.use_codecarbon:
+        cmd.append("--use_codecarbon")
+        cmd.extend(["--codecarbon_country_iso_code", args.codecarbon_country_iso_code])
 
     print("[Stage 3] Launching:")
     print(" ".join(cmd))
@@ -259,10 +263,13 @@ def build_parser() -> argparse.ArgumentParser:
     tr.add_argument("--iterations", type=int, default=70000)
     tr.add_argument("--resolution", type=int, default=2)
     tr.add_argument("--identity-dim", type=int, default=16)
+    tr.add_argument("--boundary-identity-trainable", action="store_true")
+    tr.add_argument("--use-codecarbon", action="store_true")
+    tr.add_argument("--codecarbon-country-iso-code", default="NLD")
     tr.add_argument("--boundary-confidence-dir", default="boundary_confidence")
     tr.add_argument("--boundary-instance-dir", default="boundary_instance")
-    tr.add_argument("--boundary-loss-coef", type=float, default=0.05)
-    tr.add_argument("--boundary-footprint-loss-coef", type=float, default=0.01)
+    tr.add_argument("--boundary-loss-coef", type=float, default=0.01)
+    tr.add_argument("--boundary-footprint-loss-coef", type=float, default=0.002)
     tr.add_argument("--boundary-edge-threshold", type=float, default=0.2)
     tr.add_argument("--boundary-similarity-margin", type=float, default=0.25)
     tr.add_argument("--boundary-max-points", type=int, default=4096)

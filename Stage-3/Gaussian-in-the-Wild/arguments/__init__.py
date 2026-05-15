@@ -70,6 +70,8 @@ class ModelParams(ParamGroup):
         self.boundary_k_neighbors = 8
         self.boundary_confidence_path = ''
         self.boundary_instance_path = ''
+        self.use_codecarbon = False
+        self.codecarbon_country_iso_code = "NLD"
         # =========================
 
         self.scene_name="brandenburg"

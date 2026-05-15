@@ -28,6 +28,7 @@ namespace FORWARD
 		const glm::vec4* rotations,
 		const float* opacities,
 		const float* shs,
+		const float* sh_objs,
 		bool* clamped,
 		const float* cov3D_precomp,
 		const float* colors_precomp,
@@ -55,11 +56,13 @@ namespace FORWARD
 		int W, int H,
 		const float2* points_xy_image,
 		const float* features,
+		const float* objects,
 		const float4* conic_opacity,
 		float* final_T,
 		uint32_t* n_contrib,
 		const float* bg_color,
-		float* out_color);
+		float* out_color,
+		float* out_objects);
 }
 
 

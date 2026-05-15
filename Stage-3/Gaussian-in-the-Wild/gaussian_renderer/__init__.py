@@ -16,6 +16,16 @@ from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh
 import numpy as np
 
+
+def _identity_features_for_rasterizer(pc: GaussianModel) -> torch.Tensor:
+    if getattr(pc, "use_identity", False) and hasattr(pc, "_identity") and pc._identity.numel() > 0:
+        if pc._identity.shape[1] != 16:
+            raise ValueError(f"Rasterizer identity stream expects 16 channels, got {pc._identity.shape[1]}")
+        if getattr(pc, "boundary_identity_trainable", False):
+            return pc._identity
+        return pc._identity.detach()
+    return torch.zeros((pc.get_xyz_dealed.shape[0], 16), dtype=pc.get_xyz_dealed.dtype, device=pc.get_xyz_dealed.device)
+
 def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None,\
     other_viewpoint_camera=None,store_cache=False,use_cache=False,point_features=None):
     """
@@ -100,10 +110,11 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
-    rendered_image, radii = rasterizer(
+    rendered_image, radii, rendered_identity = rasterizer(
         means3D = means3D,       # [Npoint,3]
         means2D = means2D,      #[Npoint,3]
         shs = shs,              #[Npoint,16,3]
+        sh_objs = _identity_features_for_rasterizer(pc),
         colors_precomp = colors_precomp,
         opacities = opacity,     #[Npoint,1]  
         scales = scales,            #[Npoint,3] 
@@ -115,5 +126,5 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     return {"render": rendered_image,
             "viewspace_points": screenspace_points,
             "visibility_filter" : radii > 0,
-            "radii": radii}        #N
-
+            "radii": radii,
+            "render_identity": rendered_identity}        #N
