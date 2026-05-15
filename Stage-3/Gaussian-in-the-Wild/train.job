@@ -1,0 +1,34 @@
+#!/bin/bash
+#SBATCH --job-name=stage3-wild
+#SBATCH --output=logs/%x_%A_%a.out
+#SBATCH --time=24:00:00
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=6
+#SBATCH --array=0-5
+
+SCENES=(figurines figurines_varied ramen ramen_varied teatime teatime_varied)
+SCENE=${SCENES[$SLURM_ARRAY_TASK_ID]}
+
+REPO_ROOT=${HOME}/Appearance-Invariant-Gaussian-Grouping
+GG_ROOT=${REPO_ROOT}/Stage-3/Gaussian-Grouping
+GSW_ROOT=${REPO_ROOT}/Stage-3/Gaussian-in-the-Wild
+DATASETS_ROOT=/scratch-shared/gpuuva074/datasets
+
+mkdir -p "${GSW_ROOT}/logs"
+
+echo "Activating gsw environment..."
+. "${REPO_ROOT}/env_scripts/activate_gsw.sh" || exit
+
+echo "Training GS-W for scene: ${SCENE}"
+
+python "${REPO_ROOT}/Stage-3/stage3_boundary_regularizer.py" train \
+    --gsw-root "${GSW_ROOT}" \
+    --datasets-root "${DATASETS_ROOT}" \
+    --gg-root "${GG_ROOT}" \
+    --scene "${SCENE}" \
+    --output-name "${SCENE}_stage3" \
+    --gg-experiment "${SCENE}" \
+    --gg-iteration 30000
