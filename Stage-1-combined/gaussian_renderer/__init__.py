@@ -14,49 +14,6 @@ import math
 from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
 from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh
-import numpy as np
-
-
-def _render_objects_chunked(raster_settings, means3D, means2D, opacity, scales, rotations, cov3D_precomp, features):
-    """Render a (N, C) per-Gaussian feature tensor to a (C, H, W) image via 3-channel chunks."""
-    if features is None or features.numel() == 0:
-        return None
-    feature_rasterizer = GaussianRasterizer(
-        raster_settings=GaussianRasterizationSettings(
-            image_height=raster_settings.image_height,
-            image_width=raster_settings.image_width,
-            tanfovx=raster_settings.tanfovx,
-            tanfovy=raster_settings.tanfovy,
-            bg=torch.zeros(3, device=features.device, dtype=features.dtype),
-            scale_modifier=raster_settings.scale_modifier,
-            viewmatrix=raster_settings.viewmatrix,
-            projmatrix=raster_settings.projmatrix,
-            sh_degree=0,
-            campos=raster_settings.campos,
-            prefiltered=raster_settings.prefiltered,
-            debug=raster_settings.debug,
-        )
-    )
-    num_channels = features.shape[1]
-    rendered_chunks = []
-    for start in range(0, num_channels, 3):
-        chunk = features[:, start:start + 3]
-        if chunk.shape[1] < 3:
-            pad = torch.zeros((chunk.shape[0], 3 - chunk.shape[1]), device=chunk.device, dtype=chunk.dtype)
-            chunk = torch.cat([chunk, pad], dim=1)
-        rendered_chunk, _ = feature_rasterizer(
-            means3D=means3D,
-            means2D=means2D,
-            shs=None,
-            colors_precomp=chunk,
-            opacities=opacity,
-            scales=scales,
-            rotations=rotations,
-            cov3D_precomp=cov3D_precomp,
-        )
-        valid = min(3, num_channels - start)
-        rendered_chunks.append(rendered_chunk[:valid])
-    return torch.cat(rendered_chunks, dim=0)
 
 def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None,\
     other_viewpoint_camera=None,store_cache=False,use_cache=False,point_features=None):
@@ -141,27 +98,21 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         colors_precomp = override_color
         
 
+    # Object embeddings: (N, 16) → (N, 1, 16) to match the rasterizer's sh_objs convention.
+    obj_features = pc.get_objects
+    sh_objs = obj_features.unsqueeze(1) if obj_features.numel() > 0 else None
+
     # Rasterize visible Gaussians to image, obtain their radii (on screen).
-    rendered_image, radii = rasterizer(
+    rendered_image, radii, rendered_objects = rasterizer(
         means3D = means3D,       # [Npoint,3]
         means2D = means2D,      #[Npoint,3]
         shs = shs,              #[Npoint,16,3]
+        sh_objs = sh_objs,      #[Npoint,1,16]
         colors_precomp = colors_precomp,
         opacities = opacity,     #[Npoint,1]
         scales = scales,            #[Npoint,3]
         rotations = rotations,      #[Npoint,4]
         cov3D_precomp = cov3D_precomp)
-
-    rendered_objects = _render_objects_chunked(
-        raster_settings,
-        means3D.detach(),
-        means2D.detach(),
-        opacity.detach(),
-        scales.detach() if scales is not None else None,
-        rotations.detach() if rotations is not None else None,
-        cov3D_precomp.detach() if cov3D_precomp is not None else None,
-        pc.get_objects,
-    )
 
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.

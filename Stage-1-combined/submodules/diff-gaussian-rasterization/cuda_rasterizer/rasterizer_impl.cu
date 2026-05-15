@@ -1,12 +1,10 @@
 /*
- * Copyright (C) 2023, Inria
- * GRAPHDECO research group, https://team.inria.fr/graphdeco
+ * Copyright (C) 2023, Gaussian-Grouping
+ * Gaussian-Grouping research group, https://github.com/lkeab/gaussian-grouping
  * All rights reserved.
- *
- * This software is free for non-commercial, research and evaluation use 
- * under the terms of the LICENSE.md file.
- *
- * For inquiries contact  george.drettakis@inria.fr
+ * ------------------------------------------------------------------------
+ * Modified from codes in Gaussian-Splatting 
+ * GRAPHDECO research group, https://team.inria.fr/graphdeco
  */
 
 #include "rasterizer_impl.h"
@@ -204,6 +202,7 @@ int CudaRasterizer::Rasterizer::forward(
 	const int width, int height,
 	const float* means3D,
 	const float* shs,
+	const float* sh_objs,
 	const float* colors_precomp,
 	const float* opacities,
 	const float* scales,
@@ -216,6 +215,7 @@ int CudaRasterizer::Rasterizer::forward(
 	const float tan_fovx, float tan_fovy,
 	const bool prefiltered,
 	float* out_color,
+	float* out_objects,
 	int* radii,
 	bool debug)
 {
@@ -253,6 +253,7 @@ int CudaRasterizer::Rasterizer::forward(
 		(glm::vec4*)rotations,
 		opacities,
 		shs,
+		sh_objs,
 		geomState.clamped,
 		cov3D_precomp,
 		colors_precomp,
@@ -326,11 +327,13 @@ int CudaRasterizer::Rasterizer::forward(
 		width, height,
 		geomState.means2D,
 		feature_ptr,
+		sh_objs,
 		geomState.conic_opacity,
 		imgState.accum_alpha,
 		imgState.n_contrib,
 		background,
-		out_color), debug)
+		out_color,
+		out_objects), debug)
 
 	return num_rendered;
 }
@@ -343,6 +346,7 @@ void CudaRasterizer::Rasterizer::backward(
 	const int width, int height,
 	const float* means3D,
 	const float* shs,
+	const float* sh_objs,
 	const float* colors_precomp,
 	const float* scales,
 	const float scale_modifier,
@@ -357,10 +361,12 @@ void CudaRasterizer::Rasterizer::backward(
 	char* binning_buffer,
 	char* img_buffer,
 	const float* dL_dpix,
+	const float* dL_dpix_obj,
 	float* dL_dmean2D,
 	float* dL_dconic,
 	float* dL_dopacity,
 	float* dL_dcolor,
+	float* dL_dobjects,
 	float* dL_dmean3D,
 	float* dL_dcov3D,
 	float* dL_dsh,
@@ -387,6 +393,7 @@ void CudaRasterizer::Rasterizer::backward(
 	// opacity and RGB of Gaussians from per-pixel loss gradients.
 	// If we were given precomputed colors and not SHs, use them.
 	const float* color_ptr = (colors_precomp != nullptr) ? colors_precomp : geomState.rgb;
+	const float* obj_ptr = sh_objs;
 	CHECK_CUDA(BACKWARD::render(
 		tile_grid,
 		block,
@@ -397,13 +404,16 @@ void CudaRasterizer::Rasterizer::backward(
 		geomState.means2D,
 		geomState.conic_opacity,
 		color_ptr,
+		obj_ptr,
 		imgState.accum_alpha,
 		imgState.n_contrib,
 		dL_dpix,
+		dL_dpix_obj,
 		(float3*)dL_dmean2D,
 		(float4*)dL_dconic,
 		dL_dopacity,
-		dL_dcolor), debug)
+		dL_dcolor,
+		dL_dobjects), debug)
 
 	// Take care of the rest of preprocessing. Was the precomputed covariance
 	// given to us or a scales/rot pair? If precomputed, pass that. If not,

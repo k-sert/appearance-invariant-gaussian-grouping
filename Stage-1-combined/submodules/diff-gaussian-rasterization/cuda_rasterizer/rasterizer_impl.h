@@ -1,12 +1,10 @@
 /*
- * Copyright (C) 2023, Inria
- * GRAPHDECO research group, https://team.inria.fr/graphdeco
+ * Copyright (C) 2023, Gaussian-Grouping
+ * Gaussian-Grouping research group, https://github.com/lkeab/gaussian-grouping
  * All rights reserved.
- *
- * This software is free for non-commercial, research and evaluation use 
- * under the terms of the LICENSE.md file.
- *
- * For inquiries contact  george.drettakis@inria.fr
+ * ------------------------------------------------------------------------
+ * Modified from codes in Gaussian-Splatting 
+ * GRAPHDECO research group, https://team.inria.fr/graphdeco
  */
 
 #pragma once
@@ -37,6 +35,7 @@ namespace CudaRasterizer
 		float* cov3D;
 		float4* conic_opacity;
 		float* rgb;
+		float* objects;
 		uint32_t* point_offsets;
 		uint32_t* tiles_touched;
 

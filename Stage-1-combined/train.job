@@ -1,62 +1,39 @@
 #!/bin/bash
-#SBATCH --job-name=gaussian-wild-seg
+#SBATCH --job-name=Stage-1-combined
 #SBATCH --output=logs/%x_%j.out
-#SBATCH --time=4:00:00
-#SBATCH --partition=gpu_mig
+#SBATCH --time=20:00:00
+#SBATCH --partition=gpu_a100
 #SBATCH --gpus=1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=6
+#SBATCH --constraint=scratch-node
+
+SCENES=("figurines" "figurines_varied" "ramen" "ramen_varied" "teatime" "teatime_varied")
 
 SCRIPT_DIR=$SLURM_SUBMIT_DIR
-REPO_ROOT=$(dirname "$(readlink -f "$SCRIPT_DIR")")
 
-SCENE_NAME=figurines
+cp -r "/scratch-shared/gpuuva074/datasets/" "${TMPDIR}"
 
-DATASET_DIR=${REPO_ROOT}/../datasets/${SCENE_NAME}
-OUTPUT_PATH=${SCRIPT_DIR}/outputs/${SCENE_NAME}_seg
-DEVA_DIR=${REPO_ROOT}/../gaussian-grouping/Tracking-Anything-with-DEVA
-
-ITERATIONS=1000
-# ITERATIONS=30000
+ITERATIONS=70000
 
 mkdir -p "${SCRIPT_DIR}/logs"
 
-module purge
-module load 2023
-module load Anaconda3/2023.07-2
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate GS-W
+echo "Activating gsw environment..."
+. "${HOME}/Appearance-Invariant-Gaussian-Grouping/env_scripts/activate_gsw_combined.sh" || exit
 
-# --- Step 1: generate segmentation masks with DEVA+SAM (skip if already done) ---
-if [ ! -d "${DATASET_DIR}/object_mask" ]; then
-    echo "Generating segmentation masks..."
-    cd "${DEVA_DIR}" || exit
-
-    python demo/demo_automatic.py \
-        --chunk_size 4 \
-        --img_path "$DATASET_DIR/images" \
-        --amp \
-        --temporal_setting semionline \
-        --size 480 \
-        --output "./example/output/${DATASET_DIR##*/}" \
-        --use_short_id \
-        --suppress_small_objects \
-        --SAM_PRED_IOU_THRESHOLD 0.7
-
-    cp -r "./example/output/${DATASET_DIR##*/}/Annotations" "$DATASET_DIR/object_mask"
-else
-    echo "Segmentation masks already exist, skipping DEVA+SAM."
-fi
-
-# --- Step 2: train ---
 cd "$SCRIPT_DIR" || exit
 
-python train.py \
-    --source_path "$DATASET_DIR" \
-    --scene_name ${SCENE_NAME} \
-    --model_path "$OUTPUT_PATH" \
-    --eval \
-    --resolution 2 \
-    --iterations $ITERATIONS \
-    --object_path "$DATASET_DIR/object_mask"
+for scene in "${SCENES[@]}"; do
+    DATASET_DIR="${TMPDIR}/datasets/${scene}"
+    OUTPUT_PATH=${SCRIPT_DIR}/outputs/${scene}_seg
+
+    python train.py \
+        --source_path "$DATASET_DIR" \
+        --scene_name ${scene} \
+        --model_path "$OUTPUT_PATH" \
+        --eval \
+        --resolution 2 \
+        --iterations $ITERATIONS \
+        --object_path "$DATASET_DIR/object_mask"
+done

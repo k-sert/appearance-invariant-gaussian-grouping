@@ -1,12 +1,10 @@
 /*
- * Copyright (C) 2023, Inria
- * GRAPHDECO research group, https://team.inria.fr/graphdeco
+ * Copyright (C) 2023, Gaussian-Grouping
+ * Gaussian-Grouping research group, https://github.com/lkeab/gaussian-grouping
  * All rights reserved.
- *
- * This software is free for non-commercial, research and evaluation use 
- * under the terms of the LICENSE.md file.
- *
- * For inquiries contact  george.drettakis@inria.fr
+ * ------------------------------------------------------------------------
+ * Modified from codes in Gaussian-Splatting 
+ * GRAPHDECO research group, https://team.inria.fr/graphdeco
  */
 
 #include "backward.h"
@@ -396,7 +394,7 @@ __global__ void preprocessCUDA(
 }
 
 // Backward version of the rendering procedure.
-template <uint32_t C>
+template <uint32_t C, uint32_t O>
 __global__ void __launch_bounds__(BLOCK_X * BLOCK_Y)
 renderCUDA(
 	const uint2* __restrict__ ranges,
@@ -406,13 +404,16 @@ renderCUDA(
 	const float2* __restrict__ points_xy_image,
 	const float4* __restrict__ conic_opacity,
 	const float* __restrict__ colors,
+	const float* __restrict__ objects,
 	const float* __restrict__ final_Ts,
 	const uint32_t* __restrict__ n_contrib,
 	const float* __restrict__ dL_dpixels,
+	const float* __restrict__ dL_dpixels_objs,
 	float3* __restrict__ dL_dmean2D,
 	float4* __restrict__ dL_dconic2D,
 	float* __restrict__ dL_dopacity,
-	float* __restrict__ dL_dcolors)
+	float* __restrict__ dL_dcolors,
+	float* __restrict__ dL_dobjects)
 {
 	// We rasterize again. Compute necessary block info.
 	auto block = cg::this_thread_block();
@@ -435,6 +436,7 @@ renderCUDA(
 	__shared__ float2 collected_xy[BLOCK_SIZE];
 	__shared__ float4 collected_conic_opacity[BLOCK_SIZE];
 	__shared__ float collected_colors[C * BLOCK_SIZE];
+	__shared__ float collected_objects[O * BLOCK_SIZE];
 
 	// In the forward, we stored the final value for T, the
 	// product of all (1 - alpha) factors. 
@@ -447,13 +449,20 @@ renderCUDA(
 	const int last_contributor = inside ? n_contrib[pix_id] : 0;
 
 	float accum_rec[C] = { 0 };
+	float accum_rec_obj[O] = { 0 };
 	float dL_dpixel[C];
+	float dL_dpixel_obj[O];
 	if (inside)
+	{
 		for (int i = 0; i < C; i++)
 			dL_dpixel[i] = dL_dpixels[i * H * W + pix_id];
+		for (int i = 0; i < O; i++)
+			dL_dpixel_obj[i] = dL_dpixels_objs[i * H * W + pix_id];
+	}
 
 	float last_alpha = 0;
 	float last_color[C] = { 0 };
+	float last_object[O] = { 0 };
 
 	// Gradient of pixel coordinate w.r.t. normalized 
 	// screen-space viewport corrdinates (-1 to 1)
@@ -475,6 +484,8 @@ renderCUDA(
 			collected_conic_opacity[block.thread_rank()] = conic_opacity[coll_id];
 			for (int i = 0; i < C; i++)
 				collected_colors[i * BLOCK_SIZE + block.thread_rank()] = colors[coll_id * C + i];
+			for (int i = 0; i < O; i++)
+				collected_objects[i * BLOCK_SIZE + block.thread_rank()] = objects[coll_id * O + i];
 		}
 		block.sync();
 
@@ -521,6 +532,18 @@ renderCUDA(
 				// Atomic, since this pixel is just one of potentially
 				// many that were affected by this Gaussian.
 				atomicAdd(&(dL_dcolors[global_id * C + ch]), dchannel_dcolor * dL_dchannel);
+			}
+
+			for (int ch = 0; ch < O; ch++)
+			{
+				const float o = collected_objects[ch * BLOCK_SIZE + j];
+				accum_rec_obj[ch] = last_alpha * last_object[ch] + (1.f - last_alpha) * accum_rec_obj[ch];
+				last_object[ch] = o;
+
+				const float dL_dchannel_obj = dL_dpixel_obj[ch];
+				dL_dalpha += (o - accum_rec_obj[ch]) * dL_dchannel_obj;
+
+				atomicAdd(&(dL_dobjects[global_id * O + ch]), dchannel_dcolor * dL_dchannel_obj);
 			}
 			dL_dalpha *= T;
 			// Update last alpha (to be used in the next iteration)
@@ -630,15 +653,18 @@ void BACKWARD::render(
 	const float2* means2D,
 	const float4* conic_opacity,
 	const float* colors,
+	const float* objects,
 	const float* final_Ts,
 	const uint32_t* n_contrib,
 	const float* dL_dpixels,
+	const float* dL_dpixels_objs,
 	float3* dL_dmean2D,
 	float4* dL_dconic2D,
 	float* dL_dopacity,
-	float* dL_dcolors)
+	float* dL_dcolors,
+	float* dL_dobjects)
 {
-	renderCUDA<NUM_CHANNELS> << <grid, block >> >(
+	renderCUDA<NUM_CHANNELS, NUM_OBJECTS> << <grid, block >> >(
 		ranges,
 		point_list,
 		W, H,
@@ -646,12 +672,15 @@ void BACKWARD::render(
 		means2D,
 		conic_opacity,
 		colors,
+		objects,
 		final_Ts,
 		n_contrib,
 		dL_dpixels,
+		dL_dpixels_objs,
 		dL_dmean2D,
 		dL_dconic2D,
 		dL_dopacity,
-		dL_dcolors
+		dL_dcolors,
+		dL_dobjects
 		);
 }

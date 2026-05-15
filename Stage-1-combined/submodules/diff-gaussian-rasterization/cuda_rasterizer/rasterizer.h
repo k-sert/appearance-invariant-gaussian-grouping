@@ -1,12 +1,10 @@
 /*
- * Copyright (C) 2023, Inria
- * GRAPHDECO research group, https://team.inria.fr/graphdeco
+ * Copyright (C) 2023, Gaussian-Grouping
+ * Gaussian-Grouping research group, https://github.com/lkeab/gaussian-grouping
  * All rights reserved.
- *
- * This software is free for non-commercial, research and evaluation use 
- * under the terms of the LICENSE.md file.
- *
- * For inquiries contact  george.drettakis@inria.fr
+ * ------------------------------------------------------------------------
+ * Modified from codes in Gaussian-Splatting 
+ * GRAPHDECO research group, https://team.inria.fr/graphdeco
  */
 
 #ifndef CUDA_RASTERIZER_H_INCLUDED
@@ -37,6 +35,7 @@ namespace CudaRasterizer
 			const int width, int height,
 			const float* means3D,
 			const float* shs,
+			const float* sh_objs,
 			const float* colors_precomp,
 			const float* opacities,
 			const float* scales,
@@ -49,6 +48,7 @@ namespace CudaRasterizer
 			const float tan_fovx, float tan_fovy,
 			const bool prefiltered,
 			float* out_color,
+			float* out_objects,
 			int* radii = nullptr,
 			bool debug = false);
 
@@ -58,6 +58,7 @@ namespace CudaRasterizer
 			const int width, int height,
 			const float* means3D,
 			const float* shs,
+			const float* sh_objs,
 			const float* colors_precomp,
 			const float* scales,
 			const float scale_modifier,
@@ -72,10 +73,12 @@ namespace CudaRasterizer
 			char* binning_buffer,
 			char* image_buffer,
 			const float* dL_dpix,
+			const float* dL_dpix_obj,
 			float* dL_dmean2D,
 			float* dL_dconic,
 			float* dL_dopacity,
 			float* dL_dcolor,
+			float* dL_dobjects,
 			float* dL_dmean3D,
 			float* dL_dcov3D,
 			float* dL_dsh,
