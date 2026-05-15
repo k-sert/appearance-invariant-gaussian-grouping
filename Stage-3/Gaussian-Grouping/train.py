@@ -22,6 +22,7 @@ from arguments import ModelParams, PipelineParams, OptimizationParams
 import wandb
 import json
 import lpips
+from codecarbon import EmissionsTracker
 
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, use_wandb):
     first_iter = 0
@@ -270,7 +271,17 @@ if __name__ == "__main__":
     # Start GUI server, configure and run training
     network_gui.init(args.ip, args.port)
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
-    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from, args.use_wandb)
+    os.makedirs(args.model_path, exist_ok=True)
+    tracker = EmissionsTracker(output_dir=args.model_path, project_name="gaussian-grouping-train", log_level="warning")
+    tracker.start()
+    try:
+        training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from, args.use_wandb)
+    finally:
+        emissions = tracker.stop()
+
+    print(f"\nCarbon emissions: {emissions:.6f} kg CO2eq")
+    if args.use_wandb:
+        wandb.log({"carbon_emissions_kg": emissions})
 
     # All done
     print("\nTraining complete.")

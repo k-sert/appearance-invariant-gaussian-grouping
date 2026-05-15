@@ -23,6 +23,7 @@ from PIL import Image
 import colorsys
 import cv2
 from sklearn.decomposition import PCA
+from codecarbon import EmissionsTracker
 
 def feature_to_rgb(features):
     # Input features shape: (16, H, W)
@@ -203,4 +204,11 @@ if __name__ == "__main__":
     # Initialize system state (RNG)
     safe_state(args.quiet)
 
-    render_sets(model.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_test)
+    tracker = EmissionsTracker(output_dir=args.model_path, project_name="gaussian-grouping-render", log_level="warning")
+    tracker.start()
+    try:
+        render_sets(model.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_test)
+    finally:
+        emissions = tracker.stop()
+
+    print(f"\nCarbon emissions: {emissions:.6f} kg CO2eq")
