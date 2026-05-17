@@ -26,6 +26,7 @@ import imageio
 #
 
 
+
 def render_interpolate(model_path, name, iteration, views, gaussians, pipeline, background,select_idxs=None):
     if args.scene_name=="brandenburg":
         select_idxs=[88]#
@@ -178,6 +179,8 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     '''
     render_path = os.path.join(model_path, name, "ours_{}".format(iteration), "renders")
     gts_path = os.path.join(model_path, name, "ours_{}".format(iteration), "gt")
+    dynamic_mask_path = os.path.join(model_path, name, "ours_{}".format(iteration), "dynamic_mask")
+    makedirs(dynamic_mask_path, exist_ok=True)
     if gaussians.use_features_mask:
         mask_path=os.path.join(model_path, name, "ours_{}".format(iteration), "masks")
         makedirs(mask_path, exist_ok=True)
@@ -188,16 +191,20 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
         s2d_inter_path=os.path.join(model_path, name, "ours_{}".format(iteration), "intrinsic_dynamic_interpolate")
     makedirs(render_path, exist_ok=True)
     makedirs(gts_path, exist_ok=True)
-    
+
     origin_views=copy.deepcopy(views)
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
-        rendering = render(view, gaussians, pipeline, background)["render"]       
+        render_out = render(view, gaussians, pipeline, background)
+        rendering = render_out["render"]
         gt = view.original_image[0:3, :, :]
 
         if gaussians.use_features_mask:
             tmask=gaussians.features_mask.repeat(1,3,1,1)
             torchvision.utils.save_image(tmask, os.path.join(mask_path, '{0:05d}'.format(idx) + ".png"))
-        
+
+        if render_out["dynamic_mask"] is not None:
+            torchvision.utils.save_image(render_out["dynamic_mask"], os.path.join(dynamic_mask_path, '{0:05d}'.format(idx) + ".png"))
+
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(gt, os.path.join(gts_path, '{0:05d}'.format(idx) + ".png"))
     
