@@ -53,8 +53,15 @@ def collect_results(stage: str):
         with open(json_path, "r") as f:
             data = json.load(f)
 
-        result_key = list(data.keys())[0]
-        metrics = data[result_key]
+        # Support both a list of run-dicts and a single run-dict
+        if isinstance(data, list):
+            runs = [list(d.values())[0] for d in data]
+        else:
+            runs = list(data.values())
+        metrics = {
+            key: np.mean([r[key] for r in runs if key in r])
+            for key in ("PSNR", "SSIM", "LPIPS")
+        }
 
         row = {
             "experiment": exp_name,
