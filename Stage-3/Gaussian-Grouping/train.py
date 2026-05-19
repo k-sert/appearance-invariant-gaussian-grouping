@@ -89,6 +89,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         # Object Loss
         gt_obj = viewpoint_cam.objects.cuda().long()
         logits = classifier(objects)
+        if gt_obj.shape != logits.shape[-2:]:
+            gt_obj = torch.nn.functional.interpolate(
+                gt_obj.float().unsqueeze(0).unsqueeze(0), size=logits.shape[-2:], mode='nearest'
+            ).squeeze().long()
+        gt_obj = gt_obj.clamp(0, num_classes - 1)
         loss_obj = cls_criterion(logits.unsqueeze(0), gt_obj.unsqueeze(0)).squeeze().mean()
         loss_obj = loss_obj / torch.log(torch.tensor(num_classes))  # normalize to (0,1)
 
@@ -122,7 +127,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 progress_bar.close()
 
             # Log and save
-            training_report(iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, render, (pipe, background), loss_obj_3d, loss_boundary, use_wandb)
+            training_report(iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, render, (pipe, background), loss_obj_3d, loss_boundary, use_wandb, lpips_fn, classifier)
             if (iteration in saving_iterations):
                 print("\n[ITER {}] Saving Gaussians".format(iteration))
                 scene.save(iteration)
@@ -167,7 +172,7 @@ def prepare_output_and_logger(args):
         cfg_log_f.write(str(Namespace(**vars(args))))
 
 
-def training_report(iteration, Ll1, loss, l1_loss, elapsed, testing_iterations, scene : Scene, renderFunc, renderArgs, loss_obj_3d, loss_boundary, use_wandb):
+def training_report(iteration, Ll1, loss, l1_loss, elapsed, testing_iterations, scene : Scene, renderFunc, renderArgs, loss_obj_3d, loss_boundary, use_wandb, lpips_fn, classifier=None):
 
     if use_wandb:
         log_dict = {
@@ -180,11 +185,11 @@ def training_report(iteration, Ll1, loss, l1_loss, elapsed, testing_iterations, 
         if loss_obj_3d:
             log_dict["train_loss_patches/loss_obj_3d"] = loss_obj_3d.item()
         wandb.log(log_dict)
-    
+
     # Report test and samples of training set
     if iteration in testing_iterations:
         torch.cuda.empty_cache()
-        validation_configs = ({'name': 'test', 'cameras' : scene.getTestCameras()}, 
+        validation_configs = ({'name': 'test', 'cameras' : scene.getTestCameras()},
                               {'name': 'train', 'cameras' : [scene.getTrainCameras()[idx % len(scene.getTrainCameras())] for idx in range(5, 30, 5)]})
 
         for config in validation_configs:
@@ -193,8 +198,11 @@ def training_report(iteration, Ll1, loss, l1_loss, elapsed, testing_iterations, 
                 psnr_test = 0.0
                 ssim_test = 0.0
                 lpips_test = 0.0
+                iou_test = 0.0
+                iou_count = 0
                 for idx, viewpoint in enumerate(config['cameras']):
-                    image = torch.clamp(renderFunc(viewpoint, scene.gaussians, *renderArgs)["render"], 0.0, 1.0)
+                    render_pkg = renderFunc(viewpoint, scene.gaussians, *renderArgs)
+                    image = torch.clamp(render_pkg["render"], 0.0, 1.0)
                     gt_image = torch.clamp(viewpoint.original_image.to("cuda"), 0.0, 1.0)
                     if use_wandb:
                         if idx < 5:
@@ -205,13 +213,42 @@ def training_report(iteration, Ll1, loss, l1_loss, elapsed, testing_iterations, 
                     psnr_test += psnr(image, gt_image).mean().double()
                     ssim_test += ssim(image, gt_image).mean().double()
                     lpips_test += lpips_fn(image.unsqueeze(0) * 2 - 1, gt_image.unsqueeze(0) * 2 - 1).mean().double()
+                    if classifier is not None and hasattr(viewpoint, 'objects') and viewpoint.objects is not None:
+                        gt_obj = viewpoint.objects.cuda().long()
+                        logits = classifier(render_pkg["render_object"])
+                        if gt_obj.shape != logits.shape[-2:]:
+                            gt_obj = torch.nn.functional.interpolate(
+                                gt_obj.float().unsqueeze(0).unsqueeze(0), size=logits.shape[-2:], mode='nearest'
+                            ).squeeze().long()
+                        n_cls = logits.shape[0]
+                        pred = logits.argmax(0)
+                        gt_clamped = gt_obj.clamp(0, n_cls - 1)
+                        ious = []
+                        for c in range(n_cls):
+                            tp = ((pred == c) & (gt_clamped == c)).sum().float()
+                            fp = ((pred == c) & (gt_clamped != c)).sum().float()
+                            fn = ((pred != c) & (gt_clamped == c)).sum().float()
+                            denom = tp + fp + fn
+                            if denom > 0:
+                                ious.append((tp / denom).item())
+                        if ious:
+                            iou_test += sum(ious) / len(ious)
+                            iou_count += 1
                 psnr_test /= len(config['cameras'])
                 l1_test /= len(config['cameras'])
                 ssim_test /= len(config['cameras'])
                 lpips_test /= len(config['cameras'])
-                print("\n[ITER {}] Evaluating {}: L1 {} PSNR {} SSIM {} LPIPS {}".format(iteration, config['name'], l1_test, psnr_test, ssim_test, lpips_test))
+                iou_test = iou_test / iou_count if iou_count > 0 else 0.0
+                print("\n[ITER {}] Evaluating {}: L1 {} PSNR {} SSIM {} LPIPS {} IoU {}".format(iteration, config['name'], l1_test, psnr_test, ssim_test, lpips_test, iou_test))
                 if use_wandb:
-                    wandb.log({config['name'] + "/loss_viewpoint - l1_loss": l1_test, config['name'] + "/loss_viewpoint - psnr": psnr_test})
+                    wandb.log({
+                        config['name'] + "/loss_viewpoint - l1_loss": l1_test,
+                        config['name'] + "/loss_viewpoint - psnr": psnr_test,
+                        config['name'] + "/loss_viewpoint - ssim": ssim_test,
+                        config['name'] + "/loss_viewpoint - lpips": lpips_test,
+                        config['name'] + "/loss_viewpoint - iou": iou_test,
+                        "iter": iteration,
+                    })
         if use_wandb:
             wandb.log({"scene/opacity_histogram": scene.gaussians.get_opacity, "total_points": scene.gaussians.get_xyz.shape[0], "iter": iteration})
         torch.cuda.empty_cache()

@@ -15,6 +15,8 @@ from os import makedirs
 from gaussian_renderer import render
 import torchvision
 from utils.general_utils import safe_state
+from utils.loss_utils import ssim
+from utils.image_utils import psnr
 from argparse import ArgumentParser
 from arguments import ModelParams, PipelineParams, get_combined_args
 from gaussian_renderer import GaussianModel
@@ -22,6 +24,7 @@ import numpy as np
 from PIL import Image
 import colorsys
 import cv2
+import lpips
 from sklearn.decomposition import PCA
 from codecarbon import EmissionsTracker
 
@@ -104,7 +107,11 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
     makedirs(gt_colormask_path, exist_ok=True)
     makedirs(pred_obj_path, exist_ok=True)
 
+    lpips_fn = lpips.LPIPS(net='vgg').cuda()
     per_view_iou = []
+    per_view_psnr = []
+    per_view_ssim = []
+    per_view_lpips = []
 
     for idx, view in enumerate(tqdm(views, desc="Rendering progress")):
         results = render(view, gaussians, pipeline, background)
@@ -120,30 +127,52 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
         gt_np      = gt_objects.cpu().numpy().astype(np.int32)
         gt_rgb_mask = visualize_obj(gt_objects.cpu().numpy().astype(np.uint8))
 
-        per_view_iou.append(compute_miou(pred_np, gt_np))
+        if pred_np.shape != gt_np.shape:
+            gt_tensor = torch.from_numpy(gt_np).float().unsqueeze(0).unsqueeze(0)
+            gt_resized = torch.nn.functional.interpolate(gt_tensor, size=pred_np.shape, mode='nearest')
+            gt_np_matched = gt_resized.squeeze().numpy().astype(np.int32)
+        else:
+            gt_np_matched = gt_np
+        per_view_iou.append(compute_miou(pred_np, gt_np_matched))
+
+        gt_image = torch.clamp(view.original_image[0:3, :, :].cuda(), 0.0, 1.0)
+        pred_image = torch.clamp(rendering, 0.0, 1.0)
+        per_view_psnr.append(psnr(pred_image, gt_image).mean().item())
+        per_view_ssim.append(ssim(pred_image, gt_image).item())
+        per_view_lpips.append(lpips_fn(pred_image.unsqueeze(0) * 2 - 1, gt_image.unsqueeze(0) * 2 - 1).mean().item())
 
         rgb_mask = feature_to_rgb(rendering_obj)
+        h, w = pred_np.shape
         Image.fromarray(rgb_mask).save(os.path.join(colormask_path, '{0:05d}'.format(idx) + ".png"))
-        Image.fromarray(gt_rgb_mask).save(os.path.join(gt_colormask_path, '{0:05d}'.format(idx) + ".png"))
+        Image.fromarray(gt_rgb_mask).resize((w, h), Image.NEAREST).save(os.path.join(gt_colormask_path, '{0:05d}'.format(idx) + ".png"))
         Image.fromarray(pred_obj_mask).save(os.path.join(pred_obj_path, '{0:05d}'.format(idx) + ".png"))
         gt = view.original_image[0:3, :, :]
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(gt, os.path.join(gts_path, '{0:05d}'.format(idx) + ".png"))
 
     valid_ious = [v for v in per_view_iou if not np.isnan(v)]
-    mean_iou = float(np.mean(valid_ious)) if valid_ious else float('nan')
-    print(f"\n  [{name}] Mean IoU: {mean_iou:.4f}  (over {len(valid_ious)} views)")
+    mean_iou   = float(np.mean(valid_ious)) if valid_ious else float('nan')
+    mean_psnr  = float(np.mean(per_view_psnr))
+    mean_ssim  = float(np.mean(per_view_ssim))
+    mean_lpips = float(np.mean(per_view_lpips))
+    print(f"\n  [{name}] PSNR: {mean_psnr:.4f}  SSIM: {mean_ssim:.4f}  LPIPS: {mean_lpips:.4f}  IoU: {mean_iou:.4f}  (over {len(views)} views)")
 
-    iou_out = {
+    metrics_out = {
         "split": name,
         "iteration": iteration,
+        "mean_psnr": mean_psnr,
+        "mean_ssim": mean_ssim,
+        "mean_lpips": mean_lpips,
         "mean_iou": mean_iou,
+        "per_view_psnr": per_view_psnr,
+        "per_view_ssim": per_view_ssim,
+        "per_view_lpips": per_view_lpips,
         "per_view_iou": per_view_iou,
     }
-    iou_path = os.path.join(model_path, f"iou_results_{name}_{iteration}.json")
-    with open(iou_path, "w") as f:
-        json.dump(iou_out, f, indent=2)
-    print(f"  IoU results saved to {iou_path}")
+    metrics_path = os.path.join(model_path, f"metrics_{name}_{iteration}.json")
+    with open(metrics_path, "w") as f:
+        json.dump(metrics_out, f, indent=2)
+    print(f"  Metrics saved to {metrics_path}")
 
     out_path = os.path.join(render_path[:-8],'concat')
     makedirs(out_path,exist_ok=True)
