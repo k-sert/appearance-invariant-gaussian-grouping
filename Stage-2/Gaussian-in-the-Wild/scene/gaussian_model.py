@@ -66,6 +66,10 @@ class GaussianModel:
         self.identity_trainable = getattr(args, "identity_trainable", False)
         self.identity_path = getattr(args, "identity_path", "")
         self.identity_xyz_path = getattr(args, "identity_xyz_path", "")
+        # Per-Gaussian source-segment index and per-segment visibility accumulators
+        self._identity_src_idx: torch.Tensor = torch.empty(0, dtype=torch.long)
+        self._seg_visibility_count: torch.Tensor = torch.empty(0)
+        self._seg_total_frames: int = 0
 
         self.max_radii2D = torch.empty(0)
         self.xyz_gradient_accum = torch.empty(0)
@@ -180,7 +184,8 @@ class GaussianModel:
         neighbor_model = NearestNeighbors(n_neighbors=1).fit(xyz_src)
         distances, indices = neighbor_model.kneighbors(xyz_tgt)
 
-        identity_mapped = identity[indices[:, 0]]
+        src_idx = indices[:, 0]          # (N_GSW,) int64 — which segment each Gaussian belongs to
+        identity_mapped = identity[src_idx]
 
         print(f"[Identity Mapping] Mean NN distance: {distances.mean():.6f}")
 
@@ -188,6 +193,28 @@ class GaussianModel:
             torch.tensor(identity_mapped, dtype=torch.float, device="cuda"),
             requires_grad=self.identity_trainable
         )
+
+        n_segs = identity.shape[0]
+        self._identity_src_idx = torch.tensor(src_idx, dtype=torch.long, device="cuda")
+        self._seg_visibility_count = torch.zeros(n_segs, dtype=torch.float, device="cuda")
+        self._seg_total_frames = 0
+
+    def update_seg_visibility(self, visibility_filter: torch.Tensor):
+        """Accumulate per-segment visibility counts from one training frame."""
+        if not self.use_identity or self._identity_src_idx.numel() == 0:
+            return
+        src_idx = self._identity_src_idx[visibility_filter]
+        ones = torch.ones(src_idx.shape[0], dtype=torch.float, device=src_idx.device)
+        self._seg_visibility_count.scatter_add_(0, src_idx, ones)
+        self._seg_total_frames += 1
+
+    @property
+    def get_dynamic_p_target(self) -> torch.Tensor:
+        """Per-Gaussian target p = fraction of frames the segment was visible. Shape (N, 1)."""
+        if self._seg_total_frames == 0:
+            return torch.full((self._xyz.shape[0], 1), 0.5, device="cuda")
+        ratio = (self._seg_visibility_count / self._seg_total_frames).clamp(0.0, 1.0)
+        return ratio[self._identity_src_idx].unsqueeze(1).detach()
 
     def get_covariance(self, scaling_modifier = 1):
         return self.covariance_activation(self.get_scaling, scaling_modifier, self._rotation)
@@ -579,12 +606,14 @@ class GaussianModel:
             identity = self._identity
             _point_features = torch.cat([_point_features, identity], dim=1)
 
-            # p: (N, 1) probability that each Gaussian belongs to a dynamic object
-            p = self.dynamic_mask_mlp(identity)
+            # p: (N, 1) probability that each Gaussian belongs to a dynamic object.
+            # Detach so neither the implicit branch-gating loss nor the explicit p-target
+            # loss shapes the identity embeddings through this path.
+            p = self.dynamic_mask_mlp(identity.detach())
             self._dynamic_prob = p
-            _features_intrinsic_gated = _features_intrinsic * (self.static_branch_weight * (1.0 - p)).unsqueeze(-1)
+            _features_intrinsic_gated = _features_intrinsic * (self.static_branch_weight * p).unsqueeze(-1)
             if _point_features.numel() > 0:
-                _point_features = _point_features * (self.dynamic_branch_weight * p)
+                _point_features = _point_features * (self.dynamic_branch_weight * (1.0 - p))
 
         if self.use_color_net:
             if self.use_colors_precomp:
@@ -673,7 +702,8 @@ class GaussianModel:
 
         if self.use_identity:
             self._identity = optimizable_tensors["identity"]
-        
+            self._identity_src_idx = self._identity_src_idx[valid_points_mask]
+
         self.xyz_gradient_accum = self.xyz_gradient_accum[valid_points_mask]
         if (self.use_kmap_pjmap or self.use_okmap) :
             if (self.use_kmap_pjmap ) and self.use_wo_adative:
@@ -724,6 +754,7 @@ class GaussianModel:
 
         if self.use_identity:
             self._identity = optimizable_tensors["identity"]
+            self._identity_src_idx = torch.cat([self._identity_src_idx, new_tensor["identity_src_idx"]])
 
         if ( self.use_kmap_pjmap or self.use_okmap) :
             if (self.use_kmap_pjmap ) and self.use_wo_adative:
@@ -731,7 +762,7 @@ class GaussianModel:
                 self.box_coord2=torch.cat((self.box_coord2,new_tensor["box_coord2"]),dim=0)
             else:
                 self.box_coord=optimizable_tensors["box_coord"]
-        
+
         self.xyz_gradient_accum = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
         self.denom = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
         self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
@@ -758,7 +789,8 @@ class GaussianModel:
         
         if self.use_identity:
             new_tensor["identity"] = self._identity[selected_pts_mask].repeat(N, 1)
-        
+            new_tensor["identity_src_idx"] = self._identity_src_idx[selected_pts_mask].repeat(N)
+
         new_tensor["f_intr"]  = self._features_intrinsic[selected_pts_mask].repeat(N,1,1)
         
  
@@ -790,6 +822,7 @@ class GaussianModel:
         
         if self.use_identity:
             new_tensor["identity"] = self._identity[selected_pts_mask]
+            new_tensor["identity_src_idx"] = self._identity_src_idx[selected_pts_mask]
 
         if (self.use_kmap_pjmap or self.use_okmap) :
             if (self.use_kmap_pjmap ) and self.use_wo_adative:
@@ -797,7 +830,7 @@ class GaussianModel:
                 new_tensor["box_coord2"]=self.box_coord2[selected_pts_mask]
             else:
                 new_tensor["box_coord"]=self.box_coord[selected_pts_mask]
-        
+
         self.densification_postfix(new_tensor)
 
     def densify_and_prune(self, max_grad, min_opacity, extent, max_screen_size):

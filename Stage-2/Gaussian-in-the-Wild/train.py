@@ -141,8 +141,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
         bg = torch.rand((3), device="cuda") if opt.random_background else background
 
 
-        render_pkg = render(viewpoint_cam, gaussians, pipe, bg)     
+        render_pkg = render(viewpoint_cam, gaussians, pipe, bg)
         image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
+
+        if args.use_identity:
+            gaussians.update_seg_visibility(visibility_filter)
 
         gt_image = viewpoint_cam.original_image.cuda()
       
@@ -166,7 +169,12 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, debug_fr
 
         if ( gaussians.use_kmap_pjmap or gaussians.use_okmap) and args.use_box_coord_loss:
             loss+=torch.relu(torch.abs(gaussians.map_pts_norm)-1).mean()*args.box_coord_loss_coef
-        psnr_ = psnr(image,gt_image).mean().double()       
+
+        if args.use_identity and args.dynamic_mask_mlp_loss_coef > 0 and gaussians._seg_total_frames > 0:
+            p_target = gaussians.get_dynamic_p_target
+            loss += torch.nn.functional.mse_loss(gaussians._dynamic_prob, p_target) * args.dynamic_mask_mlp_loss_coef
+
+        psnr_ = psnr(image,gt_image).mean().double()
         loss.backward()
  
         iter_end.record()

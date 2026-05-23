@@ -58,8 +58,9 @@ class ModelParams(ParamGroup):
 
         # === IDENTITY FEATURES ===
         self.use_identity = False # whether to use identity features
-        self.identity_dim = 16 
+        self.identity_dim = 16
         self.identity_trainable = False # frozen identity feature, can be set to true for fine-tuning
+        self.dynamic_mask_mlp_loss_coef = 0.1  # weight for p-target supervision loss
         # =========================
 
         self.scene_name="brandenburg"
