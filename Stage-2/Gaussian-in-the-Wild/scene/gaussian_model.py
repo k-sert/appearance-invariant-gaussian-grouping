@@ -70,6 +70,8 @@ class GaussianModel:
         self._identity_src_idx: torch.Tensor = torch.empty(0, dtype=torch.long)
         self._seg_visibility_count: torch.Tensor = torch.empty(0)
         self._seg_total_frames: int = 0
+        # Gamma < 1 compresses the ratio toward 1 faster (e.g. 0.3 → 50% visible maps to 0.81)
+        self._visibility_gamma: float = getattr(args, "dynamic_mask_mlp_visibility_gamma", 0.3)
 
         self.max_radii2D = torch.empty(0)
         self.xyz_gradient_accum = torch.empty(0)
@@ -210,11 +212,12 @@ class GaussianModel:
 
     @property
     def get_dynamic_p_target(self) -> torch.Tensor:
-        """Per-Gaussian target p = fraction of frames the segment was visible. Shape (N, 1)."""
+        """Per-Gaussian target p = visibility ratio^gamma, remapped so frequent = static. Shape (N, 1)."""
         if self._seg_total_frames == 0:
             return torch.full((self._xyz.shape[0], 1), 0.5, device="cuda")
         ratio = (self._seg_visibility_count / self._seg_total_frames).clamp(0.0, 1.0)
-        return ratio[self._identity_src_idx].unsqueeze(1).detach()
+        target = ratio.pow(self._visibility_gamma)
+        return target[self._identity_src_idx].unsqueeze(1).detach()
 
     def get_covariance(self, scaling_modifier = 1):
         return self.covariance_activation(self.get_scaling, scaling_modifier, self._rotation)

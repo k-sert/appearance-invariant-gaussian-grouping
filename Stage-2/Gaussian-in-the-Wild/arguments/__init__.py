@@ -61,6 +61,7 @@ class ModelParams(ParamGroup):
         self.identity_dim = 16
         self.identity_trainable = False # frozen identity feature, can be set to true for fine-tuning
         self.dynamic_mask_mlp_loss_coef = 0.1  # weight for p-target supervision loss
+        self.dynamic_mask_mlp_visibility_gamma = 0.3  # gamma < 1: ratio^gamma rises faster toward 1
         # =========================
 
         self.scene_name="brandenburg"
