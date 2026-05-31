@@ -113,7 +113,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     # Render per-pixel dynamic/static mask by alpha-compositing dynamic probabilities.
     dynamic_mask = None
     if hasattr(pc, '_dynamic_prob') and pc._dynamic_prob is not None:
-        dynamic_colors = pc._dynamic_prob.expand(-1, 3).contiguous()  # (N, 3)
+        dynamic_colors = (1.0 - pc._dynamic_prob).expand(-1, 3).contiguous()  # (N, 3) — white = dynamic
         dynamic_mask, _ = rasterizer(
             means3D = means3D,
             means2D = means2D,
