@@ -110,7 +110,11 @@ def plot_phase_metric_bars(df, phase_name, out_dir: str, group_col: str = "model
     os.makedirs(out_dir, exist_ok=True)
 
     datasets = sorted(df["dataset"].dropna().unique())
-    groups = sorted(df[group_col].dropna().unique())
+    # "baseline" always sorts first; everything else alphabetically after it.
+    groups = sorted(
+        df[group_col].dropna().unique(),
+        key=lambda g: (g != "baseline", g),
+    )
     metrics = ["PSNR", "SSIM", "LPIPS"]
 
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
@@ -158,11 +162,14 @@ def plot_phase_metric_bars(df, phase_name, out_dir: str, group_col: str = "model
         plt.close()
 
 
-def main(stages: list[str]):
+def main(stages: list[str], baseline: str | None = None):
     for stage in stages:
         stage_dir = os.path.join(BASE_DIR, stage)
         if not os.path.isdir(stage_dir):
             raise ValueError(f"Could not find stage directory: {stage_dir}")
+
+    if baseline is not None and baseline not in stages:
+        raise ValueError(f"Baseline stage '{baseline}' must be one of the provided stages.")
 
     # Per-stage plots
     for stage in stages:
@@ -176,8 +183,19 @@ def main(stages: list[str]):
     # Cross-stage comparison plots
     if len(stages) > 1:
         df1, df2 = collect_all_stages(stages)
-        df1["stage_model"] = df1["stage"] + " / " + df1["model"]
-        df2["stage_model"] = df2["stage"] + " / " + df2["model"]
+
+        # Keep only the designated stage's baseline run; drop every other
+        # stage's baseline. With no --baseline, all baseline runs are dropped.
+        df1 = df1[(df1["model"] != "baseline") | (df1["stage"] == baseline)]
+        df2 = df2[(df2["model"] != "baseline") | (df2["stage"] == baseline)]
+
+        def make_label(stage, model):
+            if stage == baseline and model == "baseline":
+                return "baseline"
+            return f"{stage} / {model}"
+
+        df1["stage_model"] = df1.apply(lambda r: make_label(r["stage"], r["model"]), axis=1)
+        df2["stage_model"] = df2.apply(lambda r: make_label(r["stage"], r["model"]), axis=1)
         plots_dir = os.path.join(BASE_DIR, "plots", "comparison")
         plot_phase_metric_bars(
             df1, "Original", os.path.join(plots_dir, "phase_1"), group_col="stage_model"
@@ -193,6 +211,7 @@ def main(stages: list[str]):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--stage", required=True, nargs="+", type=str)
+    parser.add_argument("--baseline", type=str, default=None)
     args = parser.parse_args()
 
-    main(stages=args.stage)
+    main(stages=args.stage, baseline=args.baseline)
