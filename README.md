@@ -10,6 +10,7 @@ The GitHub repository is organized as:
 
 ```text
 Appearance-Invariant-Gaussian-Grouping/
+├── dataset_curation/    # Dataset split and appearance-variation notebook
 ├── env_scripts/         # Optional environment setup and activation helpers
 ├── results/             # Baseline and Stage specific results
 ├── Stage-1/             # Identity transfer experiments
@@ -37,6 +38,12 @@ Stage-3/
 ```
 
 The original upstream READMEs are available inside the corresponding GG and GS-W folders.
+
+Synthetic dataset preparation utilities are kept in:
+
+```text
+dataset_curation/data_curation.ipynb
+```
 
 ## Method Overview
 
@@ -185,6 +192,30 @@ Stage III generates boundary data inside each scene folder:
 ├── boundary_instance/
 └── boundary_vis/
 ```
+
+## Dataset Curation
+
+The repository includes a notebook for preparing the datasets used in the experiments:
+
+```text
+dataset_curation/data_curation.ipynb
+```
+
+The notebook creates GS-W-compatible train/test split files by assigning every 8th image to the test split. It also creates the appearance-varied datasets by copying the original scenes and applying synthetic appearance changes to 40% of the training images while keeping the test images unchanged.
+
+Before running the notebook, update the dataset root near the top:
+
+```python
+DATASETS_ROOT = Path("../datasets").expanduser().resolve()
+```
+
+The optional COLMAP check section also exposes:
+
+```python
+GSW_ROOT = Path("../Stage-1/Gaussian-in-the-Wild").expanduser().resolve()
+```
+
+Change this path only if your local GS-W checkout is stored somewhere else.
 
 ## Running Stage I
 

@@ -1,0 +1,643 @@
+{
+  "dataset": "figurines_varied",
+  "replace_fraction": 0.4,
+  "seed": 42,
+  "num_total_images": 303,
+  "num_train_images": 265,
+  "num_test_images_clean_untouched": 38,
+  "num_train_images_modified": 106,
+  "modified_images": {
+    "frame_00067.jpg": {
+      "recipe": "dark_cool",
+      "brightness": 0.6550021510445334,
+      "contrast": 0.9550058636738239
+    },
+    "frame_00015.jpg": {
+      "recipe": "bright_warm",
+      "brightness": 1.2072168360594278,
+      "contrast": 1.1144026295959202
+    },
+    "frame_00162.jpg": {
+      "recipe": "mild_blur",
+      "radius": 0.8160163911698579,
+      "brightness": 1.075403555598178
+    },
+    "frame_00144.jpg": {
+      "recipe": "gamma_shift",
+      "gamma": 0.9841529517652285
+    },
+    "frame_00132.jpg": {
+      "recipe": "dark_cool",
+      "brightness": 0.7299988791942026,
+      "contrast": 1.0177240365548466
+    },
+    "frame_00083.jpg": {
+      "recipe": "color_shift",
+      "rgb_scale": [
+        0.8510698123521423,
+        1.2385173924964055,
+        1.127930585075498
+      ],
+      "rgb_bias": [
+        -0.02376515105716777,
+        0.033216822121452966,
+        0.04793673626560861
+      ]
+    },
+    "frame_00061.jpg": {
+      "recipe": "mixed_light",
+      "brightness": 0.9234994867633306,
+      "contrast": 1.1062978848170546,
+      "saturation": 1.04413373594163,
+      "gamma": 1.156922978328514
+    },
+    "frame_00052.jpg": {
+      "recipe": "dark_cool",
+      "brightness": 0.7188659778434676,
+      "contrast": 1.0866644086100232
+    },
+    "frame_00248.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.040670861512312376
+    },
+    "frame_00020.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.409622587081434,
+      "saturation": 1.0656868349655066
+    },
+    "frame_00010.jpg": {
+      "recipe": "gamma_shift",
+      "gamma": 0.693618124008366
+    },
+    "frame_00028.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.3141218049490149,
+      "saturation": 1.113421427792376
+    },
+    "frame_00064.jpg": {
+      "recipe": "low_contrast",
+      "contrast": 0.7377875351251216,
+      "brightness": 0.9595851547763087
+    },
+    "frame_00069.jpg": {
+      "recipe": "dark_cool",
+      "brightness": 0.84757664047276,
+      "contrast": 0.9392493563144968
+    },
+    "frame_00149.jpg": {
+      "recipe": "mixed_light",
+      "brightness": 0.7563230068275298,
+      "contrast": 1.1592064234450736,
+      "saturation": 0.9156275989280122,
+      "gamma": 1.0442269224291496
+    },
+    "frame_00178.jpg": {
+      "recipe": "bright_warm",
+      "brightness": 1.2235504427398538,
+      "contrast": 1.0907941989816472
+    },
+    "frame_00008.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.25143099974527,
+      "saturation": 1.0925908103193405
+    },
+    "frame_00165.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.2211523267117148,
+      "saturation": 1.0951626463511817
+    },
+    "frame_00059.jpg": {
+      "recipe": "gamma_shift",
+      "gamma": 0.8767366860983244
+    },
+    "frame_00211.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.020451155652856465
+    },
+    "frame_00191.jpg": {
+      "recipe": "low_contrast",
+      "contrast": 0.6630308553138806,
+      "brightness": 1.062955558654828
+    },
+    "frame_00206.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.028326876303722368
+    },
+    "frame_00160.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.01874552979250678
+    },
+    "frame_00124.jpg": {
+      "recipe": "mild_blur",
+      "radius": 0.6310755746823559,
+      "brightness": 1.0285597977129972
+    },
+    "frame_00066.jpg": {
+      "recipe": "dark_cool",
+      "brightness": 0.7123972899237092,
+      "contrast": 1.0847572583649305
+    },
+    "frame_00301.jpg": {
+      "recipe": "dark_cool",
+      "brightness": 0.6732186641782534,
+      "contrast": 0.9816771611155476
+    },
+    "frame_00173.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.04322411649441646
+    },
+    "frame_00300.jpg": {
+      "recipe": "bright_warm",
+      "brightness": 1.1691674616953607,
+      "contrast": 1.0250372209400038
+    },
+    "frame_00238.jpg": {
+      "recipe": "dark_cool",
+      "brightness": 0.7088158081517357,
+      "contrast": 0.991886775866244
+    },
+    "frame_00255.jpg": {
+      "recipe": "color_shift",
+      "rgb_scale": [
+        0.8835088736683427,
+        0.9739696863689316,
+        1.1743532893867263
+      ],
+      "rgb_bias": [
+        -0.048208408153618855,
+        0.06664927454391868,
+        0.0461297121021519
+      ]
+    },
+    "frame_00003.jpg": {
+      "recipe": "dark_cool",
+      "brightness": 0.8064418473755746,
+      "contrast": 1.047672566755782
+    },
+    "frame_00223.jpg": {
+      "recipe": "gamma_shift",
+      "gamma": 0.7477683872112062
+    },
+    "frame_00237.jpg": {
+      "recipe": "mixed_light",
+      "brightness": 1.226993472594663,
+      "contrast": 0.9755994838948421,
+      "saturation": 1.1899949838967374,
+      "gamma": 0.8818373012835956
+    },
+    "frame_00047.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.032543950401981075
+    },
+    "frame_00205.jpg": {
+      "recipe": "color_shift",
+      "rgb_scale": [
+        0.93987340989036,
+        1.1685442493234826,
+        0.9506386810571863
+      ],
+      "rgb_bias": [
+        -0.04900583701223317,
+        -0.06234986799158394,
+        0.07396961399139533
+      ]
+    },
+    "frame_00125.jpg": {
+      "recipe": "gamma_shift",
+      "gamma": 0.9107249152500291
+    },
+    "frame_00101.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.224005735852221,
+      "saturation": 1.1773182943421727
+    },
+    "frame_00272.jpg": {
+      "recipe": "low_contrast",
+      "contrast": 0.7375006502114404,
+      "brightness": 1.0191712888522981
+    },
+    "frame_00046.jpg": {
+      "recipe": "gamma_shift",
+      "gamma": 0.9651524635667001
+    },
+    "frame_00290.jpg": {
+      "recipe": "mixed_light",
+      "brightness": 1.2117924123950794,
+      "contrast": 0.9859482948249874,
+      "saturation": 1.0423421901562921,
+      "gamma": 1.0155156346077807
+    },
+    "frame_00224.jpg": {
+      "recipe": "low_contrast",
+      "contrast": 0.8038790814427992,
+      "brightness": 1.096684832133502
+    },
+    "frame_00100.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.04031380821543128
+    },
+    "frame_00031.jpg": {
+      "recipe": "gamma_shift",
+      "gamma": 1.3812494324141968
+    },
+    "frame_00291.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.3753266204428907,
+      "saturation": 1.1460361363897702
+    },
+    "frame_00112.jpg": {
+      "recipe": "bright_warm",
+      "brightness": 1.26124007081649,
+      "contrast": 1.1487506821574416
+    },
+    "frame_00029.jpg": {
+      "recipe": "low_contrast",
+      "contrast": 0.7975830140548577,
+      "brightness": 1.0750250620232635
+    },
+    "frame_00106.jpg": {
+      "recipe": "mild_blur",
+      "radius": 1.1789781879753565,
+      "brightness": 0.9832020154268282
+    },
+    "frame_00296.jpg": {
+      "recipe": "dark_cool",
+      "brightness": 0.8035655507546704,
+      "contrast": 1.0406459480490207
+    },
+    "frame_00102.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.3783992500839632,
+      "saturation": 1.0443085886377395
+    },
+    "frame_00286.jpg": {
+      "recipe": "dark_cool",
+      "brightness": 0.7681220429724072,
+      "contrast": 1.0935015256461673
+    },
+    "frame_00078.jpg": {
+      "recipe": "mild_blur",
+      "radius": 0.8129520151908083,
+      "brightness": 1.037521549236291
+    },
+    "frame_00267.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.04260005985926124
+    },
+    "frame_00014.jpg": {
+      "recipe": "mixed_light",
+      "brightness": 0.8504064907749399,
+      "contrast": 1.2530722439590953,
+      "saturation": 0.9163719910151229,
+      "gamma": 1.1819357745915848
+    },
+    "frame_00214.jpg": {
+      "recipe": "mixed_light",
+      "brightness": 1.0325991312667873,
+      "contrast": 1.3484062012656637,
+      "saturation": 1.046571583904247,
+      "gamma": 1.2210000227313171
+    },
+    "frame_00135.jpg": {
+      "recipe": "color_shift",
+      "rgb_scale": [
+        0.896609100057572,
+        1.2092760671037486,
+        1.1677559179235555
+      ],
+      "rgb_bias": [
+        0.06462087595761719,
+        0.033100683195908476,
+        -0.06110780778545848
+      ]
+    },
+    "frame_00158.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.3072410676741548,
+      "saturation": 1.1985445314021255
+    },
+    "frame_00037.jpg": {
+      "recipe": "color_shift",
+      "rgb_scale": [
+        1.1295202616309834,
+        1.055235056952898,
+        0.9355507505224969
+      ],
+      "rgb_bias": [
+        0.04489326807642746,
+        -0.00034011554006106726,
+        -0.06097437014251725
+      ]
+    },
+    "frame_00111.jpg": {
+      "recipe": "mild_blur",
+      "radius": 0.7046021056179728,
+      "brightness": 1.0498597751908048
+    },
+    "frame_00024.jpg": {
+      "recipe": "low_contrast",
+      "contrast": 0.7419057569726214,
+      "brightness": 1.0903435405653474
+    },
+    "frame_00163.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.4270944956042824,
+      "saturation": 1.0617681315332124
+    },
+    "frame_00087.jpg": {
+      "recipe": "low_contrast",
+      "contrast": 0.785258690440603,
+      "brightness": 0.9716476979400006
+    },
+    "frame_00184.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.043026244577507755
+    },
+    "frame_00182.jpg": {
+      "recipe": "bright_warm",
+      "brightness": 1.3243727374045147,
+      "contrast": 1.1097857942105025
+    },
+    "frame_00107.jpg": {
+      "recipe": "color_shift",
+      "rgb_scale": [
+        0.837682965753372,
+        0.9500778316155505,
+        1.1867100852898913
+      ],
+      "rgb_bias": [
+        -0.06309010634894648,
+        0.0057024070434806284,
+        -0.06980966883995905
+      ]
+    },
+    "frame_00170.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.015502910291119562
+    },
+    "frame_00058.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.3549522235641067,
+      "saturation": 1.1298985853171668
+    },
+    "frame_00207.jpg": {
+      "recipe": "low_contrast",
+      "contrast": 0.7930611264938627,
+      "brightness": 0.9169902918941388
+    },
+    "frame_00021.jpg": {
+      "recipe": "gamma_shift",
+      "gamma": 0.8332127002434669
+    },
+    "frame_00244.jpg": {
+      "recipe": "mild_blur",
+      "radius": 1.0357188571789335,
+      "brightness": 1.0500386488582258
+    },
+    "frame_00195.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.4302870563092072,
+      "saturation": 0.9947923432899707
+    },
+    "frame_00068.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.039989005401601094
+    },
+    "frame_00086.jpg": {
+      "recipe": "bright_warm",
+      "brightness": 1.2807723773533375,
+      "contrast": 1.1217848092936828
+    },
+    "frame_00245.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.340679719108878,
+      "saturation": 1.000905158369078
+    },
+    "frame_00288.jpg": {
+      "recipe": "gamma_shift",
+      "gamma": 0.8075479971014501
+    },
+    "frame_00030.jpg": {
+      "recipe": "mixed_light",
+      "brightness": 1.1471737225650263,
+      "contrast": 0.8048014835571133,
+      "saturation": 1.1054463775175727,
+      "gamma": 1.1319309533348803
+    },
+    "frame_00253.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.2453521519236312,
+      "saturation": 0.9629358337816185
+    },
+    "frame_00261.jpg": {
+      "recipe": "low_contrast",
+      "contrast": 0.7124341295644875,
+      "brightness": 1.0405239557657735
+    },
+    "frame_00134.jpg": {
+      "recipe": "gamma_shift",
+      "gamma": 0.793855158916253
+    },
+    "frame_00187.jpg": {
+      "recipe": "mixed_light",
+      "brightness": 0.8863387238514162,
+      "contrast": 1.3199174901403916,
+      "saturation": 1.2423452172383516,
+      "gamma": 1.1302373276304292
+    },
+    "frame_00108.jpg": {
+      "recipe": "dark_cool",
+      "brightness": 0.6936303519961359,
+      "contrast": 1.07467193364762
+    },
+    "frame_00048.jpg": {
+      "recipe": "mixed_light",
+      "brightness": 0.867184378790475,
+      "contrast": 1.2795589500387312,
+      "saturation": 1.2502482154333399,
+      "gamma": 0.8319428989915699
+    },
+    "frame_00109.jpg": {
+      "recipe": "bright_warm",
+      "brightness": 1.203535433243493,
+      "contrast": 1.1153434582880606
+    },
+    "frame_00104.jpg": {
+      "recipe": "gamma_shift",
+      "gamma": 1.0886042476042315
+    },
+    "frame_00062.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.2556330714904334,
+      "saturation": 1.1424140176146962
+    },
+    "frame_00197.jpg": {
+      "recipe": "bright_warm",
+      "brightness": 1.2656127789549172,
+      "contrast": 1.0684520876938395
+    },
+    "frame_00079.jpg": {
+      "recipe": "bright_warm",
+      "brightness": 1.3324729824422343,
+      "contrast": 1.0870745199516987
+    },
+    "frame_00200.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.3014157021632629,
+      "saturation": 1.0091926823572266
+    },
+    "frame_00190.jpg": {
+      "recipe": "mixed_light",
+      "brightness": 0.8994885066553607,
+      "contrast": 1.2864031426745377,
+      "saturation": 1.2385995852360114,
+      "gamma": 1.2298023404885883
+    },
+    "frame_00022.jpg": {
+      "recipe": "mixed_light",
+      "brightness": 0.9840053755814353,
+      "contrast": 1.2314840403008407,
+      "saturation": 1.1131087820138665,
+      "gamma": 0.9980673681293446
+    },
+    "frame_00179.jpg": {
+      "recipe": "color_shift",
+      "rgb_scale": [
+        1.092569122462287,
+        1.2266491246281215,
+        0.9746129990528029
+      ],
+      "rgb_bias": [
+        0.02260738530335131,
+        0.030481928705032107,
+        -0.059742510756087414
+      ]
+    },
+    "frame_00243.jpg": {
+      "recipe": "mild_blur",
+      "radius": 0.5246190453035957,
+      "brightness": 0.9155626198235125
+    },
+    "frame_00051.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.0256345797663228
+    },
+    "frame_00157.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.030693859800421046
+    },
+    "frame_00072.jpg": {
+      "recipe": "color_shift",
+      "rgb_scale": [
+        1.097598024102484,
+        0.9474626151352947,
+        0.8879291790256609
+      ],
+      "rgb_bias": [
+        0.0580771701422242,
+        0.04514116168892414,
+        -0.05479328001951686
+      ]
+    },
+    "frame_00212.jpg": {
+      "recipe": "mild_blur",
+      "radius": 0.822474819783601,
+      "brightness": 1.0082891048773264
+    },
+    "frame_00136.jpg": {
+      "recipe": "dark_cool",
+      "brightness": 0.6863183280976044,
+      "contrast": 0.9651292994473201
+    },
+    "frame_00218.jpg": {
+      "recipe": "high_contrast",
+      "contrast": 1.2954757005909574,
+      "saturation": 1.1840735764015426
+    },
+    "frame_00080.jpg": {
+      "recipe": "bright_warm",
+      "brightness": 1.3418883959874321,
+      "contrast": 1.0924288930805364
+    },
+    "frame_00188.jpg": {
+      "recipe": "dark_cool",
+      "brightness": 0.6560394142074497,
+      "contrast": 0.9036396749790243
+    },
+    "frame_00164.jpg": {
+      "recipe": "mixed_light",
+      "brightness": 1.1782898322984812,
+      "contrast": 1.119190104166115,
+      "saturation": 1.0112602256056038,
+      "gamma": 1.0581347585766678
+    },
+    "frame_00276.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.019960343797363445
+    },
+    "frame_00096.jpg": {
+      "recipe": "low_contrast",
+      "contrast": 0.8202800750030892,
+      "brightness": 0.9091633841632145
+    },
+    "frame_00018.jpg": {
+      "recipe": "noise",
+      "noise_sigma": 0.016058430624245546
+    },
+    "frame_00268.jpg": {
+      "recipe": "mild_blur",
+      "radius": 1.1293605537591724,
+      "brightness": 0.9004203905190521
+    },
+    "frame_00011.jpg": {
+      "recipe": "low_contrast",
+      "contrast": 0.6779671141852759,
+      "brightness": 0.9656302523204874
+    },
+    "frame_00093.jpg": {
+      "recipe": "low_contrast",
+      "contrast": 0.8353984921348812,
+      "brightness": 0.9788566521398682
+    }
+  },
+  "untouched_test_images": [
+    "frame_00001.jpg",
+    "frame_00009.jpg",
+    "frame_00017.jpg",
+    "frame_00025.jpg",
+    "frame_00033.jpg",
+    "frame_00041.jpg",
+    "frame_00049.jpg",
+    "frame_00057.jpg",
+    "frame_00065.jpg",
+    "frame_00073.jpg",
+    "frame_00081.jpg",
+    "frame_00089.jpg",
+    "frame_00097.jpg",
+    "frame_00105.jpg",
+    "frame_00113.jpg",
+    "frame_00121.jpg",
+    "frame_00129.jpg",
+    "frame_00137.jpg",
+    "frame_00145.jpg",
+    "frame_00153.jpg",
+    "frame_00161.jpg",
+    "frame_00169.jpg",
+    "frame_00177.jpg",
+    "frame_00185.jpg",
+    "frame_00193.jpg",
+    "frame_00201.jpg",
+    "frame_00209.jpg",
+    "frame_00217.jpg",
+    "frame_00225.jpg",
+    "frame_00233.jpg",
+    "frame_00241.jpg",
+    "frame_00249.jpg",
+    "frame_00257.jpg",
+    "frame_00265.jpg",
+    "frame_00273.jpg",
+    "frame_00281.jpg",
+    "frame_00289.jpg",
+    "frame_00299.jpg"
+  ]
+}
