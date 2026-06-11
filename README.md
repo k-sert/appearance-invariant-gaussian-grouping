@@ -48,14 +48,14 @@ Stage I trains Gaussian Grouping source models, extracts per-Gaussian identity e
 
 Selected GG checkpoints used for identity transfer:
 
-| Dataset | GG source iteration |
-|---|---:|
-| Figurines | 8000 |
-| Figurines-synthetic | 7000 |
-| Ramen | 7000 |
-| Ramen-synthetic | 7000 |
-| Teatime | 7000 |
-| Teatime-synthetic | 7000 |
+| Scene | GG experiment | GG source iteration |
+|---|---|---:|
+| figurines | figurines_phase_1 | 8000 |
+| figurines_varied | figurines_phase_2 | 7000 |
+| ramen | ramen_phase_1 | 7000 |
+| ramen_varied | ramen_phase_2 | 7000 |
+| teatime | teatime_phase_1 | 7000 |
+| teatime_varied | teatime_phase_2 | 7000 |
 
 Relevant code:
 
@@ -185,6 +185,120 @@ Stage III generates boundary data inside each scene folder:
 ├── boundary_instance/
 └── boundary_vis/
 ```
+
+## Running Stage I
+
+From the repository root:
+
+```bash
+cd Stage-1
+```
+
+Use the GG environment for the Gaussian Grouping steps and the GS-W environment for the GS-W steps.
+
+Train the Gaussian Grouping source model:
+
+```bash
+cd Gaussian-Grouping
+
+python train.py \
+  -s /path/to/datasets/figurines \
+  -m /path/to/gg_outputs/figurines_phase_1 \
+  --config_file config/gaussian_dataset/train.json \
+  --iterations 30000 \
+  --test_iterations 3000 4000 5000 6000 7000 8000 10000 12000 14000 16000 18000 20000 22500 25000 27500 30000 \
+  --save_iterations 3000 4000 5000 6000 7000 8000 10000 12000 14000 16000 18000 20000 22500 25000 27500 30000
+```
+
+Extract the 16D GG identity vectors and Gaussian centers from saved GG checkpoints:
+
+```bash
+python - <<'PY'
+from pathlib import Path
+import numpy as np
+from plyfile import PlyData
+
+gg_output = Path("/path/to/gg_outputs/figurines_phase_1")
+iterations = [
+    3000, 4000, 5000, 6000, 7000, 8000,
+    10000, 12000, 14000, 16000, 18000, 20000,
+    22500, 25000, 27500, 30000,
+]
+
+for iteration in iterations:
+    iter_dir = gg_output / "point_cloud" / f"iteration_{iteration}"
+    ply_path = iter_dir / "point_cloud.ply"
+    if not ply_path.exists():
+        continue
+
+    vertex = PlyData.read(ply_path)["vertex"]
+    identity = np.stack([vertex[f"obj_dc_{i}"] for i in range(16)], axis=1)
+    xyz = np.stack([vertex["x"], vertex["y"], vertex["z"]], axis=1)
+
+    np.save(iter_dir / "identity_encodings.npy", identity)
+    np.save(iter_dir / "gaussian_xyz.npy", xyz)
+    print(f"Saved iteration {iteration}: xyz={xyz.shape}, identity={identity.shape}")
+PY
+```
+
+Train a GS-W baseline for the same scene. This baseline is used for comparison and for probing which GG checkpoint transfers best:
+
+```bash
+cd ../Gaussian-in-the-Wild
+
+python train.py \
+  -s /path/to/datasets/figurines \
+  -m /path/to/gsw_outputs/figurines_baseline_phase_1 \
+  --scene_name figurines \
+  --resolution 2 \
+  --iterations 70000 \
+  --test_iterations 70000 \
+  --save_iterations 70000 \
+  --eval
+```
+
+Run Stage I identity-conditioned GS-W training:
+
+```bash
+python train.py \
+  -s /path/to/datasets/figurines \
+  -m /path/to/gsw_outputs/figurines_finetuned_identity_phase_1 \
+  --scene_name figurines \
+  --iterations 70000 \
+  --test_iterations 70000 \
+  --save_iterations 70000 \
+  --resolution 2 \
+  --eval \
+  --use_identity \
+  --identity_dim 16 \
+  --identity_trainable \
+  --identity_path /path/to/gg_outputs/figurines_phase_1/point_cloud/iteration_8000/identity_encodings.npy \
+  --identity_xyz_path /path/to/gg_outputs/figurines_phase_1/point_cloud/iteration_8000/gaussian_xyz.npy
+```
+
+Use the checkpoint table in the Stage I overview to swap `scene`, output names, GG experiment names, and GG iterations for the other final runs. The uploaded Stage I notebook also contains the optional checkpoint-probing code used to rank GG checkpoints against the trained GS-W baseline.
+
+## Stage I Hyperparameters
+
+Default final-run settings:
+
+| Parameter | Value |
+|---|---:|
+| GG source training iterations | 30000 |
+| GG save/test checkpoint grid | 3000, 4000, 5000, 6000, 7000, 8000, 10000, 12000, 14000, 16000, 18000, 20000, 22500, 25000, 27500, 30000 |
+| GG config file | `config/gaussian_dataset/train.json` |
+| GG object classes | 256 |
+| GG densify until iteration | 10000 |
+| GG 3D regularization interval | 5 |
+| GG 3D regularization k | 5 |
+| GS-W baseline iterations | 70000 |
+| Stage I GS-W iterations | 70000 |
+| Resolution factor | 2 |
+| Identity dimension | 16 |
+| Identity transfer method | 1-nearest-neighbor in 3D |
+| Identity trainable | true |
+| Identity learning rate | 0.0025 |
+| Checkpoint probe k-neighbors | 8 |
 
 ## Running Stage III
 
