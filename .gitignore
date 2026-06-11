@@ -42,3 +42,4 @@ dist/
 # Optional: env folders
 .env
 .venv
+Stage-1-combined/
