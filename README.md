@@ -300,5 +300,5 @@ PY
 This project builds on:
 
 - [Gaussian Grouping: Segment and Edit Anything in 3D Scenes](https://github.com/lkeab/gaussian-grouping)
-- [Gaussian Splatting in the Wild](https://github.com/Jumpat/SegAnyGAussians)
-- [3D Gaussian Splatting](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/)
+- [Gaussian in the Wild: 3D Gaussian Splatting for Unconstrained Image Collections](https://github.com/EastbeanZhang/Gaussian-Wild)
+- [3D Gaussian Splatting for Real-Time Radiance Field Rendering](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/)
