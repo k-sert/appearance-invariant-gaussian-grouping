@@ -79,10 +79,10 @@ Stage II builds on the Stage I identity-conditioned GS-W model. It adds an ident
 16D identity -> Linear(16, 32) -> ReLU -> Linear(32, 1) -> Sigmoid
 ```
 
-The output `p` gates the appearance branches:
+The output `a` gates the appearance branches:
 
-- static branch gate: `1 - p`
-- dynamic branch gate: `p`
+- static branch gate: $\alpha$
+- dynamic branch gate: (1 - $\alpha$)
 
 The routing MLP is optimized end-to-end through the reconstruction objective. The final implementation does not use an additional explicit routing-supervision loss.
 
@@ -330,6 +330,47 @@ Default final-run settings:
 | Identity trainable | true |
 | Identity learning rate | 0.0025 |
 | Checkpoint probe k-neighbors | 8 |
+
+## Running Stage II
+
+Stage II reuses the Gaussian Grouping source models from Stage I — no new GG training is needed. Follow the [GG training and identity extraction steps](#running-stage-i) from Stage I, then use the `Stage-2/Gaussian-in-the-Wild/` code for the GS-W training.
+
+From the repository root:
+
+```bash
+cd Stage-2
+```
+
+The GS-W training command is the same as Stage I. The routing MLP is automatically enabled whenever `--use_identity` is passed:
+
+```bash
+cd Gaussian-in-the-Wild
+
+python train.py \
+  -s /path/to/datasets/figurines \
+  -m /path/to/gsw_outputs/figurines_finetuned_phase_1 \
+  --scene_name figurines \
+  --iterations 70000 \
+  --test_iterations 70000 \
+  --save_iterations 70000 \
+  --resolution 2 \
+  --eval \
+  --use_identity \
+  --identity_dim 16 \
+  --identity_trainable \
+  --identity_path /path/to/gg_outputs/figurines_phase_1/point_cloud/iteration_8000/identity_encodings.npy \
+  --identity_xyz_path /path/to/gg_outputs/figurines_phase_1/point_cloud/iteration_8000/gaussian_xyz.npy
+```
+
+Use the checkpoint table in the Stage I overview to swap `scene`, output names, GG experiment names, and GG iterations for the other scenes.
+
+## Stage II Hyperparameters
+
+Default final-run settings (values shared with Stage I are omitted):
+
+| Parameter | Value |
+|---|---:|
+| Dynamic mask MLP learning rate | 5e-4 |
 
 ## Running Stage III
 
