@@ -1,5 +1,6 @@
 import argparse
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import numpy as np
 import re
 
@@ -8,6 +9,8 @@ import json
 import pandas as pd
 
 BASE_DIR = os.path.dirname(__file__)
+
+FONT_SIZE = 16
 
 
 def _parse_exp_name(exp_name: str):
@@ -110,17 +113,20 @@ def plot_phase_metric_bars(df, phase_name, out_dir: str, group_col: str = "model
     os.makedirs(out_dir, exist_ok=True)
 
     datasets = sorted(df["dataset"].dropna().unique())
-    # "baseline" always sorts first; everything else alphabetically after it.
-    groups = sorted(
-        df[group_col].dropna().unique(),
-        key=lambda g: (g != "baseline", g),
-    )
+
+    def _group_sort_key(g):
+        if g == "baseline":
+            return (0, 0, g)
+        m = re.search(r"Stage-(\d+)", g)
+        return (1, int(m.group(1)), g) if m else (2, 0, g)
+
+    groups = sorted(df[group_col].dropna().unique(), key=_group_sort_key)
     metrics = ["PSNR", "SSIM", "LPIPS"]
 
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     n = len(groups)
     width = 0.7 / n
-    offsets = np.linspace(-(n - 1) / 2 * width, (n - 1) / 2 * width, n)
+    offsets = np.linspace((n - 1) / 2 * width, -(n - 1) / 2 * width, n)
 
     for metric in metrics:
         values = (
@@ -129,14 +135,15 @@ def plot_phase_metric_bars(df, phase_name, out_dir: str, group_col: str = "model
             .reindex(columns=groups)
         )
 
-        x = np.arange(len(datasets))
+        y = np.arange(len(datasets))
 
-        plt.figure(figsize=(6.5, 4.5))
+        plt.rcParams.update({"font.size": FONT_SIZE})
+        plt.figure(figsize=(7, 5))
 
         for i, group in enumerate(groups):
             label = group.replace("_", " ").title()
-            plt.bar(
-                x + offsets[i],
+            plt.barh(
+                y + offsets[i],
                 values[group],
                 width,
                 label=label,
@@ -145,21 +152,36 @@ def plot_phase_metric_bars(df, phase_name, out_dir: str, group_col: str = "model
                 linewidth=0.5,
             )
 
-        plt.xticks(x, datasets)
-        plt.ylabel(metric)
+        plt.yticks(y, datasets)
+        plt.xlabel(metric)
         plt.title(f"{phase_name} - {metric}")
-        plt.legend()
-        plt.grid(axis="y", alpha=0.3)
+        plt.grid(axis="x", alpha=0.3)
 
         min_val = values.min().min()
         max_val = values.max().max()
         margin = (max_val - min_val) * 0.4 if max_val != min_val else 0.01
-        plt.ylim(min_val - margin, max_val + margin)
+        plt.xlim(min_val - margin, max_val + margin)
 
         plt.tight_layout()
         filename = f"{phase_name.lower().replace(' ', '_')}_{metric.lower()}.png"
         plt.savefig(os.path.join(out_dir, filename), dpi=150)
         plt.close()
+
+    handles = [
+        mpatches.Patch(
+            facecolor=colors[i % len(colors)],
+            edgecolor="black",
+            linewidth=0.5,
+            label=g.replace("_", " ").title(),
+        )
+        for i, g in enumerate(groups)
+    ]
+    fig, ax = plt.subplots(figsize=(3.5, 1.5 + 0.35 * len(groups)))
+    ax.legend(handles=handles, loc="center", fontsize=FONT_SIZE)
+    ax.axis("off")
+    plt.tight_layout()
+    plt.savefig(os.path.join(out_dir, "legend.png"), dpi=150)
+    plt.close()
 
 
 def main(stages: list[str], baseline: str | None = None):
@@ -169,7 +191,9 @@ def main(stages: list[str], baseline: str | None = None):
             raise ValueError(f"Could not find stage directory: {stage_dir}")
 
     if baseline is not None and baseline not in stages:
-        raise ValueError(f"Baseline stage '{baseline}' must be one of the provided stages.")
+        raise ValueError(
+            f"Baseline stage '{baseline}' must be one of the provided stages."
+        )
 
     # Per-stage plots
     for stage in stages:
@@ -192,10 +216,15 @@ def main(stages: list[str], baseline: str | None = None):
         def make_label(stage, model):
             if stage == baseline and model == "baseline":
                 return "baseline"
-            return f"{stage} / {model}"
+            # return f"{stage} / {model}"
+            return f"{stage}"
 
-        df1["stage_model"] = df1.apply(lambda r: make_label(r["stage"], r["model"]), axis=1)
-        df2["stage_model"] = df2.apply(lambda r: make_label(r["stage"], r["model"]), axis=1)
+        df1["stage_model"] = df1.apply(
+            lambda r: make_label(r["stage"], r["model"]), axis=1
+        )
+        df2["stage_model"] = df2.apply(
+            lambda r: make_label(r["stage"], r["model"]), axis=1
+        )
         plots_dir = os.path.join(BASE_DIR, "plots", "comparison")
         plot_phase_metric_bars(
             df1, "Original", os.path.join(plots_dir, "phase_1"), group_col="stage_model"
